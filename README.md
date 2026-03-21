@@ -1,21 +1,12 @@
 # Skill-SE-Kit
 
-`Skill-SE-Kit` is the standard runtime foundation for protocol-compatible,
-audit-ready, self-evolving skills.
-The external product and package name is `Skill-SE-Kit`, and the internal
-Python module path is `skill_se_kit`.
+[中文说明](README.zh-CN.md)
 
-This implementation consumes the shared protocol repository at:
+`Skill-SE-Kit` is a protocol-compatible runtime substrate for self-evolving, audit-ready, governable skills.
+It provides the shared runtime primitives needed for standalone skill evolution and governed promotion workflows.
 
-- `/Users/admin/Documents/AI/skill self-evolution/skill-evolution-protocol`
-
-It does not copy or redefine the shared schemas. All protocol validation flows read the canonical schema and example files directly from that repository through `ProtocolAdapter`.
-
-## Supported Protocol
-
-- declared protocol version: `1.0.0`
-- schema set: `2026-03-20`
-- governance modes: `standalone`, `governed`
+The public product and package name is `Skill-SE-Kit`.
+The internal Python module path is `skill_se_kit`.
 
 ## Core Capabilities
 
@@ -24,26 +15,24 @@ It does not copy or redefine the shared schemas. All protocol validation flows r
 - overlay application
 - local evaluation
 - local promotion in `standalone`
-- rollback
-- governor detection and protocol-version handshake in `governed`
-- first-class audit artifacts
-- provenance artifacts
-- pluggable verification hooks with promotion gating
+- governor handshake and governed-mode enforcement
+- audit artifact generation
+- provenance recording
+- verification hooks and promotion gating
 
-## Remix Integration
+## Supported Protocol
 
-`Remix` is a separate product that integrates `Skill-SE-Kit` when it wants
-runtime self-evolution, audit, provenance, verification, and governed handoff
-capabilities for artifact remix workflows.
+- protocol version: `1.0.0`
+- governance modes: `standalone`, `governed`
 
-`Skill-SE-Kit` remains the substrate. `Remix` remains an independent system
-that may target skills, protocols, modules, features, products, and compound
-artifact bundles through its own target profiles.
+`Skill-SE-Kit` consumes the canonical schemas and examples from [skill-evolution-protocol](https://github.com/d-wwei/skill-evolution-protocol).
 
-## Project Layout
+## Repository Layout
 
 ```text
 skill-se-kit/
+  README.md
+  README.zh-CN.md
   src/skill_se_kit/
     audit/
     runtime/
@@ -55,31 +44,18 @@ skill-se-kit/
     protocol/
     verification/
   tests/
-    contract/
-    unit/
-    integration/
   examples/
   docs/
 ```
 
-## Running Tests
+## Quick Start
 
 ```bash
 python3 -m pip install .
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-The install step makes `skill_se_kit` importable from a clean checkout while the
-test suite runs against the source tree.
-
-## Integration
-
-For integrating another skill on top of `Skill-SE-Kit`, start with:
-
-- [Integration Guide](/Users/admin/Documents/AI/skill%20self-evolution/skill-se-kit/docs/integration-guide.md)
-- [Minimal Integration Example](/Users/admin/Documents/AI/skill%20self-evolution/skill-se-kit/examples/minimal_skill_integration.py)
-
-## Storage Layering
+## Skill Storage Layering
 
 ```text
 <skill-root>/
@@ -105,3 +81,19 @@ For integrating another skill on top of `Skill-SE-Kit`, start with:
     snapshots/
     framework_policy/
 ```
+
+## Integration
+
+Start with:
+
+- [Integration Guide](docs/integration-guide.md)
+- [Architecture](docs/architecture.md)
+- [MVP Plan](docs/mvp-plan.md)
+- [Minimal Integration Example](examples/minimal_skill_integration.py)
+
+## Relationship To Other Repositories
+
+- [Skill Evolution Protocol](https://github.com/d-wwei/skill-evolution-protocol): canonical contract and schemas
+- [Agent Skill Governor](https://github.com/d-wwei/agent-skill-governor): external authority for governed official promotion
+- [Remix](https://github.com/d-wwei/remix): independent reconstruction system that integrates `Skill-SE-Kit` when it needs self-evolution and governed handoff
+
