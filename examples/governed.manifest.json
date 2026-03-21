@@ -1,0 +1,30 @@
+{
+  "schema_name": "SkillManifest",
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "skill_id": "demo.skill",
+  "name": "Demo Skill",
+  "version": "0.1.0",
+  "description": "Governed demo manifest for Skill-SE-Kit.",
+  "governance": {
+    "mode": "governed",
+    "official_status": "official",
+    "governor_id": "governor-main",
+    "handshake_required": true
+  },
+  "capability": {
+    "level": "federated",
+    "summary": "Coordinates with a governor."
+  },
+  "compatibility": {
+    "min_protocol_version": "1.0.0",
+    "max_protocol_version": "1.0.0"
+  },
+  "official_ref": {
+    "baseline_version": "0.1.0",
+    "promotion_decision_id": "decision-bootstrap"
+  },
+  "metadata": {
+    "owner": "skill-se-kit"
+  }
+}
