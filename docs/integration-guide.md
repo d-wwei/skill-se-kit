@@ -107,6 +107,9 @@ should use `.skill_se_kit/`.
 python3 -m pip install skill-se-kit
 ```
 
+For the easiest integration path, prefer `EasyIntegrator.one_click(...)` or
+`SkillRuntime.enable_easy_integration(...)`.
+
 ### 2. Create A Manifest
 
 Start from:
@@ -155,6 +158,12 @@ For a fully autonomous integrated skill, also use:
 - `register_rewriter(...)` when managed files should be rewritten
 - `run_autonomous_cycle(...)`
 
+For foolproof product-style integration, use:
+
+- `EasyIntegrator.one_click(...)`
+- `run_integrated_skill(...)`
+- `get_latest_evolution_summary()`
+
 ## Minimal Example
 
 See:
@@ -173,6 +182,7 @@ This example shows a small native skill wrapper that:
 For a full self-learning example, also see:
 
 - [autonomous_native_skill.py](/Users/admin/Documents/AI/skill%20self-evolution/skill-se-kit/examples/autonomous_native_skill.py)
+- [easy_mode_skill.py](/Users/admin/Documents/AI/skill%20self-evolution/skill-se-kit/examples/easy_mode_skill.py)
 
 ## Standalone Integration
 
@@ -249,6 +259,23 @@ That gives the skill:
 - skill add/merge/discard management
 - proposal creation
 - regression-gated local promotion
+
+## Foolproof Product Mode
+
+If you want the kit to feel like a built-in product feature instead of a
+framework API, the recommended flow is:
+
+1. call `EasyIntegrator.one_click(...)`
+2. set `run_mode` to `off`, `manual`, or `auto`
+3. execute skill turns via `run_integrated_skill(...)`
+4. let auto-feedback and human-readable reports run by default
+
+This gives users:
+
+- one-click setup
+- default auto-run support
+- automatic feedback from user input and execution results
+- markdown and JSON evolution reports under `reports/evolution/`
 
 ## Audit And Provenance Outputs
 

@@ -10,6 +10,10 @@ The internal Python module path is `skill_se_kit`.
 
 ## Core Capabilities
 
+- one-click easy integration for agents and skills
+- configurable run modes: `off`, `manual`, `auto`
+- automatic feedback extraction from user input and execution results
+- human-readable evolution reports
 - autonomous dual-loop evolution for integrated skills
 - execution-time retrieval from skill bank and experience bank
 - interaction-to-experience extraction
@@ -60,6 +64,18 @@ python3 -m pip install .
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
+## Foolproof Usage
+
+Use `EasyIntegrator.one_click(...)` or `SkillRuntime.enable_easy_integration(...)`
+to bootstrap a skill workspace, register the executor, set the run mode, and
+enable auto-feedback plus human reports in one step.
+
+Run modes:
+
+- `off`: bypass the kit and call the executor directly
+- `manual`: run the kit but do not auto-learn
+- `auto`: run the kit and auto-trigger evolution
+
 ## Skill Storage Layering
 
 ```text
@@ -89,6 +105,8 @@ python3 -m unittest discover -s tests -p 'test_*.py'
     snapshots/
     framework_policy/
     skill_contract.json
+  reports/
+    evolution/
 ```
 
 ## Integration
@@ -100,6 +118,7 @@ Start with:
 - [Architecture](docs/architecture.md)
 - [MVP Plan](docs/mvp-plan.md)
 - [Minimal Integration Example](examples/minimal_skill_integration.py)
+- [Easy Mode Example](examples/easy_mode_skill.py)
 - [Autonomous Native Skill Example](examples/autonomous_native_skill.py)
 
 ## Relationship To Other Repositories

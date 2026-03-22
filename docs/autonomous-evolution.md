@@ -58,6 +58,12 @@ The runtime then supports:
 - `execute(...)`
 - `autonomous_improve(...)`
 - `run_autonomous_cycle(...)`
+- `run_integrated_skill(...)`
+
+For zero-config style integration, the product layer also exposes:
+
+- `EasyIntegrator.one_click(...)`
+- `SkillRuntime.enable_easy_integration(...)`
 
 ## Storage Additions
 
@@ -86,4 +92,3 @@ Autonomous local promotion requires:
 - standalone governance mode
 
 In governed mode, the engine still learns locally, but promotion remains external.
-

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from skill_se_kit.audit.logger import AuditLogger
+from skill_se_kit.feedback.extractor import AutoFeedbackExtractor
 from skill_se_kit.evaluation.local_evaluator import LocalEvaluator
 from skill_se_kit.evaluation.regression_runner import RegressionRunner
 from skill_se_kit.evolution.autonomous_engine import AutonomousEvolutionEngine
@@ -13,6 +14,7 @@ from skill_se_kit.governance.governor_client import GovernorClient
 from skill_se_kit.governance.local_promoter import LocalPromoter
 from skill_se_kit.provenance.store import ProvenanceStore
 from skill_se_kit.protocol.adapter import ProtocolAdapter
+from skill_se_kit.reporting.evolution_reporter import EvolutionReporter
 from skill_se_kit.storage.experience_store import ExperienceStore
 from skill_se_kit.storage.knowledge_store import KnowledgeStore
 from skill_se_kit.storage.skill_contract_store import SkillContractStore
@@ -29,6 +31,8 @@ class SkillRuntime:
         self.version_store = VersionStore(self.workspace, self.protocol_adapter, self.contract_store)
         self.audit_logger = AuditLogger(self.workspace, self.version_store)
         self.provenance_store = ProvenanceStore(self.workspace, self.version_store)
+        self.feedback_extractor = AutoFeedbackExtractor()
+        self.reporter = EvolutionReporter(self.workspace)
         self.verification_registry = VerificationHookRegistry(self.workspace)
         self.knowledge_store = KnowledgeStore(self.workspace)
         self._executor = None
@@ -115,6 +119,58 @@ class SkillRuntime:
             )
         return response
 
+    def run_integrated_skill(
+        self,
+        input: Dict[str, Any],
+        *,
+        context: Optional[Dict[str, Any]] = None,
+        feedback: Dict[str, Any] | str | None = None,
+        auto_promote: Optional[bool] = None,
+        run_mode: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        if self._executor is None:
+            return self.execute(input, context)
+
+        contract = self.contract_store.load_contract()
+        resolved_mode = run_mode or contract.get("runtime_mode", "auto")
+        execution_context = dict(context or {})
+        execution_context["runtime_mode"] = resolved_mode
+
+        if resolved_mode == "off":
+            result = self._executor(input, execution_context)
+            return {
+                "kit_active": False,
+                "runtime_mode": "off",
+                "result": result,
+            }
+
+        execution = self.execute(input, execution_context)
+        execution["kit_active"] = True
+        execution["runtime_mode"] = resolved_mode
+
+        if resolved_mode == "manual":
+            return execution
+
+        if contract.get("auto_feedback", True):
+            feedback = self.feedback_extractor.extract(
+                input=input,
+                context=execution_context,
+                result=execution["result"],
+                explicit_feedback=feedback,
+            )
+        if feedback is None:
+            return execution
+
+        cycle = self.autonomous_improve(
+            execution["execution_id"],
+            feedback=feedback,
+            auto_promote=auto_promote if auto_promote is not None else True,
+        )
+        execution["autonomous_cycle"] = cycle
+        if contract.get("human_reports", True):
+            execution["evolution_report"] = self.reporter.write_report(cycle)
+        return execution
+
     def record_experience(self, **kwargs) -> Dict[str, Any]:
         return self.experience_store.record_experience(**kwargs)
 
@@ -156,12 +212,18 @@ class SkillRuntime:
         managed_files: Optional[list[Dict[str, Any]]] = None,
         evaluation_cases: Optional[list[Dict[str, Any]]] = None,
         auto_promote_min_improvement: float = 0.0,
+        runtime_mode: Optional[str] = None,
+        auto_feedback: Optional[bool] = None,
+        human_reports: Optional[bool] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         return self.contract_store.save_contract(
             managed_files=managed_files,
             evaluation_cases=evaluation_cases,
             auto_promote_min_improvement=auto_promote_min_improvement,
+            runtime_mode=runtime_mode,
+            auto_feedback=auto_feedback,
+            human_reports=human_reports,
             metadata=metadata,
         )
 
@@ -201,7 +263,50 @@ class SkillRuntime:
             feedback=feedback,
             auto_promote=auto_promote,
         )
+        if self.contract_store.load_contract().get("human_reports", True):
+            execution["evolution_report"] = self.reporter.write_report(execution["autonomous_cycle"])
         return execution
+
+    def enable_easy_integration(
+        self,
+        *,
+        manifest: Optional[Dict[str, Any]] = None,
+        executor,
+        run_mode: str = "auto",
+        evaluation_cases: Optional[list[Dict[str, Any]]] = None,
+        managed_files: Optional[list[Dict[str, Any]]] = None,
+        auto_feedback: bool = True,
+        human_reports: bool = True,
+        auto_promote_min_improvement: float = 0.0,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> "SkillRuntime":
+        if manifest is not None:
+            self.workspace.bootstrap(manifest)
+        else:
+            self.workspace.ensure_layout()
+        self.register_executor(executor)
+        self.configure_integration(
+            managed_files=managed_files,
+            evaluation_cases=evaluation_cases,
+            auto_promote_min_improvement=auto_promote_min_improvement,
+            runtime_mode=run_mode,
+            auto_feedback=auto_feedback,
+            human_reports=human_reports,
+            metadata=metadata,
+        )
+        return self
+
+    def get_latest_evolution_report(self) -> Dict[str, Any]:
+        latest = self.workspace.evolution_reports_dir / "latest.json"
+        if latest.exists():
+            from skill_se_kit.common import load_json
+
+            return load_json(latest)
+        return {}
+
+    def get_latest_evolution_summary(self) -> str:
+        report = self.get_latest_evolution_report()
+        return str(report.get("human_summary") or "")
 
     def _get_executor(self):
         return self._executor

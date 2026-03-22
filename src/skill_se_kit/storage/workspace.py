@@ -102,6 +102,14 @@ class SkillWorkspace:
         return self.root / "provenance" / "lineage"
 
     @property
+    def reports_dir(self) -> Path:
+        return self.root / "reports"
+
+    @property
+    def evolution_reports_dir(self) -> Path:
+        return self.reports_dir / "evolution"
+
+    @property
     def _metadata_root(self) -> Path:
         current = self.root / ".skill_se_kit"
         legacy = self.root / ".skillkit"
@@ -130,6 +138,7 @@ class SkillWorkspace:
             self.root / "audit" / "evidence",
             self.root / "provenance" / "sources",
             self.root / "provenance" / "lineage",
+            self.root / "reports" / "evolution",
             self.snapshots_dir,
             self.local_promotions_dir,
             self.framework_policy_dir,

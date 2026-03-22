@@ -16,6 +16,9 @@ class SkillContractStore:
                 "managed_files": [],
                 "evaluation_cases": [],
                 "auto_promote_min_improvement": 0.0,
+                "runtime_mode": "auto",
+                "auto_feedback": True,
+                "human_reports": True,
             }
         return load_json(self.workspace.skill_contract_path)
 
@@ -25,6 +28,9 @@ class SkillContractStore:
         managed_files: Optional[List[Dict[str, Any]]] = None,
         evaluation_cases: Optional[List[Dict[str, Any]]] = None,
         auto_promote_min_improvement: float = 0.0,
+        runtime_mode: Optional[str] = None,
+        auto_feedback: Optional[bool] = None,
+        human_reports: Optional[bool] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         contract = self.load_contract()
@@ -33,8 +39,13 @@ class SkillContractStore:
         if evaluation_cases is not None:
             contract["evaluation_cases"] = evaluation_cases
         contract["auto_promote_min_improvement"] = float(auto_promote_min_improvement)
+        if runtime_mode is not None:
+            contract["runtime_mode"] = str(runtime_mode)
+        if auto_feedback is not None:
+            contract["auto_feedback"] = bool(auto_feedback)
+        if human_reports is not None:
+            contract["human_reports"] = bool(human_reports)
         if metadata is not None:
             contract["metadata"] = metadata
         dump_json(self.workspace.skill_contract_path, contract)
         return contract
-

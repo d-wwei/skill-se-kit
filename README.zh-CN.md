@@ -9,6 +9,10 @@
 
 ## 核心能力
 
+- 面向 agent 和 skill 的一键轻松集成
+- 可配置运行模式：`off`、`manual`、`auto`
+- 从用户输入和执行结果中自动提取反馈
+- 面向人类的可读进化报告
 - 面向集成 skill 的自治双循环进化
 - 执行时从 skill bank 与 experience bank 检索知识
 - 从交互反馈中自动提炼经验
@@ -59,6 +63,23 @@ python3 -m pip install .
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
+## 傻瓜式使用
+
+可以使用 `EasyIntegrator.one_click(...)` 或
+`SkillRuntime.enable_easy_integration(...)` 一步完成：
+
+- 初始化 skill workspace
+- 注册 executor
+- 设置运行模式
+- 打开自动反馈
+- 打开人类可读报告
+
+运行模式：
+
+- `off`：不运行 kit，只直接调用 executor
+- `manual`：运行 kit，但不自动学习
+- `auto`：运行 kit，并自动触发进化
+
 ## Skill 存储分层
 
 ```text
@@ -88,6 +109,8 @@ python3 -m unittest discover -s tests -p 'test_*.py'
     snapshots/
     framework_policy/
     skill_contract.json
+  reports/
+    evolution/
 ```
 
 ## 集成入口
@@ -99,6 +122,7 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 - [架构说明](docs/architecture.md)
 - [MVP 计划](docs/mvp-plan.md)
 - [最小集成示例](examples/minimal_skill_integration.py)
+- [一键模式示例](examples/easy_mode_skill.py)
 - [自治 skill 示例](examples/autonomous_native_skill.py)
 
 ## 与其他仓库的关系
