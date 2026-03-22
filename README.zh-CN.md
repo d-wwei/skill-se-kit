@@ -150,6 +150,7 @@ skill-se-kit rollback --skill-root /path/to/skill --snapshot-id snapshot-xxxx
 建议从这些文档开始：
 
 - [集成指南](docs/integration-guide.md)
+- [集成模式规范](docs/integration-modes.md)
 - [自治进化说明](docs/autonomous-evolution.md)
 - [架构说明](docs/architecture.md)
 - [MVP 计划](docs/mvp-plan.md)
@@ -158,6 +159,10 @@ skill-se-kit rollback --skill-root /path/to/skill --snapshot-id snapshot-xxxx
 - [自治 skill 示例](examples/autonomous_native_skill.py)
 - [自治代码修复示例](examples/autonomous_code_repair.py)
 - `skill-se-kit init`、`skill-se-kit run`、`skill-se-kit report`
+
+如果你希望 kit 真的去修代码，而不只是学规则，一定先读
+[集成模式规范](docs/integration-modes.md)，确认你接的是原生修复模式，
+而不是“执行在外部，kit 只做事后记录”的模式。
 
 ## 与其他仓库的关系
 

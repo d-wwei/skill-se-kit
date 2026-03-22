@@ -147,6 +147,7 @@ Auto-feedback defaults:
 Start with:
 
 - [Integration Guide](docs/integration-guide.md)
+- [Integration Modes](docs/integration-modes.md)
 - [Autonomous Evolution Guide](docs/autonomous-evolution.md)
 - [Architecture](docs/architecture.md)
 - [MVP Plan](docs/mvp-plan.md)
@@ -155,6 +156,10 @@ Start with:
 - [Autonomous Native Skill Example](examples/autonomous_native_skill.py)
 - [Autonomous Code Repair Example](examples/autonomous_code_repair.py)
 - `skill-se-kit init`, `skill-se-kit run`, `skill-se-kit report`
+
+If you want the kit to repair code, not just learn rules, read
+[Integration Modes](docs/integration-modes.md) first and make sure you are
+using native repair mode instead of a post-execution logging setup.
 
 ## Relationship To Other Repositories
 

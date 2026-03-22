@@ -12,6 +12,14 @@ The intended result is:
 - `Skill-SE-Kit` owns evolution, governance, audit, provenance, and rollback plumbing
 - protocol compatibility remains centralized and testable
 
+Before integrating a real skill, also read:
+
+- [Integration Modes](integration-modes.md)
+
+That document defines when you are in learning-only mode versus native repair
+mode, and how to avoid the common anti-pattern of using the kit as a
+post-execution logger instead of the execution host.
+
 ## What To Integrate
 
 An integrating skill should depend on `skill-se-kit` as a library and use
@@ -184,6 +192,13 @@ The CLI path is the closest thing to "install and go":
 3. read `reports/evolution/latest.md` or `skill-se-kit report`
 4. use `skill-se-kit rollback --snapshot-id ...` if a promoted candidate should be reverted
 
+Important:
+
+- if your harness runs scripts first and only calls `skill-se-kit run` afterward,
+  you are usually in learning-only mode
+- if you expect automatic code repair, the real execution path must be owned by
+  the runtime and the defective files must be present in `managed_files`
+
 ## Automatic Code Repair And Optimization
 
 To let `Skill-SE-Kit` land real code changes instead of only recording lessons:
@@ -192,6 +207,12 @@ To let `Skill-SE-Kit` land real code changes instead of only recording lessons:
 2. provide structured `repair_actions` or `optimization_actions` through feedback or executor results
 3. optionally configure `repair_actions_on_fail` in `evaluation_cases`
 4. set `max_repair_rounds` to allow one or more repair retries before promotion
+
+If the real defective file is not in `managed_files`, the kit should not be
+expected to repair it.
+
+If the executor does not emit structured repair evidence, the kit will usually
+fall back to skill-bank learning and markdown guidance.
 
 Supported built-in adapters include:
 
