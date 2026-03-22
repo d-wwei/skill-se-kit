@@ -77,8 +77,28 @@ class AutonomousEvolutionEngine:
     ) -> Dict[str, Any]:
         rollout = self.knowledge_store.load_rollout(execution_id)
         feedback_payload = self._normalize_feedback(feedback)
+        confidence = float(feedback_payload.get("confidence", 1.0))
+        min_confidence = 0.0
+        if self.contract_store is not None:
+            min_confidence = float(self.contract_store.load_contract().get("min_feedback_confidence", 0.35))
         experience = self._extract_experience(rollout, feedback_payload)
         self.knowledge_store.append_experience_item(experience)
+
+        if confidence < min_confidence:
+            return {
+                "execution_id": execution_id,
+                "experience": experience,
+                "decision": {
+                    "action": "skip",
+                    "summary": f"Skipped low-confidence feedback for {execution_id}",
+                    "reason": "low_feedback_confidence",
+                    "confidence": confidence,
+                    "min_feedback_confidence": min_confidence,
+                },
+                "proposal": None,
+                "evaluation": None,
+                "promotion": None,
+            }
 
         decision, updated_skill_bank = self._decide_skill_update(experience)
         if decision["action"] == "discard":
@@ -171,12 +191,15 @@ class AutonomousEvolutionEngine:
 
     def _normalize_feedback(self, feedback: Dict[str, Any] | str) -> Dict[str, Any]:
         if isinstance(feedback, dict):
-            return dict(feedback)
+            payload = dict(feedback)
+            payload.setdefault("confidence", 1.0)
+            payload.setdefault("source", "explicit")
+            return payload
         raw = normalize_text(feedback)
         status = "positive"
         if any(token in raw.lower() for token in ["fail", "wrong", "bad", "error", "unsafe"]):
             status = "negative"
-        return {"status": status, "comment": raw}
+        return {"status": status, "comment": raw, "confidence": 1.0, "source": "explicit"}
 
     def _extract_experience(self, rollout: Dict[str, Any], feedback: Dict[str, Any]) -> Dict[str, Any]:
         recent = self.knowledge_store.recent_rollouts(rollout["task_signature"], limit=5)
@@ -209,6 +232,8 @@ class AutonomousEvolutionEngine:
             "recorded_at": utc_now_iso(),
             "task_signature": rollout["task_signature"],
             "feedback_status": feedback.get("status", "unknown"),
+            "feedback_source": feedback.get("source", "unknown"),
+            "feedback_confidence": float(feedback.get("confidence", 1.0)),
             "feedback_text": lesson,
             "lesson": lesson,
             "cross_rollout_critique": critique,
@@ -281,7 +306,10 @@ class AutonomousEvolutionEngine:
     @staticmethod
     def _should_discard(experience: Dict[str, Any]) -> bool:
         text = experience["lesson"].lower()
-        return any(token in text for token in ["one-off", "temporary", "do not reuse", "ignore this"])
+        return any(
+            token in text
+            for token in ["one-off", "temporary", "do not reuse", "ignore this", "一次性", "临时", "不要复用", "忽略这次"]
+        )
 
     @staticmethod
     def _merge_skill_content(existing: str, experience: Dict[str, Any]) -> str:

@@ -12,6 +12,7 @@ from skill_se_kit.evolution.overlay_applier import OverlayApplier
 from skill_se_kit.evolution.proposal_generator import ProposalGenerator
 from skill_se_kit.governance.governor_client import GovernorClient
 from skill_se_kit.governance.local_promoter import LocalPromoter
+from skill_se_kit.integration.auto_bootstrap import load_auto_integration_config, load_executor_from_spec
 from skill_se_kit.provenance.store import ProvenanceStore
 from skill_se_kit.protocol.adapter import ProtocolAdapter
 from skill_se_kit.reporting.evolution_reporter import EvolutionReporter
@@ -24,6 +25,26 @@ from skill_se_kit.verification.hooks import VerificationHookRegistry
 
 
 class SkillRuntime:
+    @classmethod
+    def from_auto_integration(cls, skill_root: str | Path, protocol_root: str | Path | None = None) -> "SkillRuntime":
+        config = load_auto_integration_config(skill_root)
+        runtime = cls(
+            skill_root=skill_root,
+            protocol_root=protocol_root or config["protocol_root"],
+        )
+        runtime.register_executor(load_executor_from_spec(skill_root, config["executor"]))
+        runtime.configure_integration(
+            managed_files=config.get("managed_files"),
+            evaluation_cases=config.get("evaluation_cases"),
+            auto_promote_min_improvement=config.get("auto_promote_min_improvement", 0.0),
+            min_feedback_confidence=config.get("min_feedback_confidence", 0.35),
+            runtime_mode=config.get("runtime_mode"),
+            auto_feedback=config.get("auto_feedback"),
+            human_reports=config.get("human_reports"),
+            metadata={"auto_integration": True, "executor": config.get("executor")},
+        )
+        return runtime
+
     def __init__(self, *, skill_root: str | Path, protocol_root: str | Path):
         self.workspace = SkillWorkspace(skill_root)
         self.protocol_adapter = ProtocolAdapter(protocol_root)
@@ -212,6 +233,7 @@ class SkillRuntime:
         managed_files: Optional[list[Dict[str, Any]]] = None,
         evaluation_cases: Optional[list[Dict[str, Any]]] = None,
         auto_promote_min_improvement: float = 0.0,
+        min_feedback_confidence: Optional[float] = None,
         runtime_mode: Optional[str] = None,
         auto_feedback: Optional[bool] = None,
         human_reports: Optional[bool] = None,
@@ -221,6 +243,7 @@ class SkillRuntime:
             managed_files=managed_files,
             evaluation_cases=evaluation_cases,
             auto_promote_min_improvement=auto_promote_min_improvement,
+            min_feedback_confidence=min_feedback_confidence,
             runtime_mode=runtime_mode,
             auto_feedback=auto_feedback,
             human_reports=human_reports,
@@ -278,6 +301,7 @@ class SkillRuntime:
         auto_feedback: bool = True,
         human_reports: bool = True,
         auto_promote_min_improvement: float = 0.0,
+        min_feedback_confidence: float = 0.35,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> "SkillRuntime":
         if manifest is not None:
@@ -289,6 +313,7 @@ class SkillRuntime:
             managed_files=managed_files,
             evaluation_cases=evaluation_cases,
             auto_promote_min_improvement=auto_promote_min_improvement,
+            min_feedback_confidence=min_feedback_confidence,
             runtime_mode=run_mode,
             auto_feedback=auto_feedback,
             human_reports=human_reports,

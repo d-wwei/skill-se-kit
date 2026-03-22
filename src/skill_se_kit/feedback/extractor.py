@@ -15,9 +15,31 @@ class AutoFeedbackExtractor:
         "do not",
         "don't",
         "avoid",
+        "每次都",
+        "一定要",
+        "必须",
+        "应该",
+        "优先",
+        "尽量",
+        "不要",
+        "别",
+        "避免",
     ]
 
-    NEGATIVE_TOKENS = ["error", "exception", "failed", "unsafe", "wrong", "timeout"]
+    NEGATIVE_TOKENS = [
+        "error",
+        "exception",
+        "failed",
+        "unsafe",
+        "wrong",
+        "timeout",
+        "错误",
+        "异常",
+        "失败",
+        "不安全",
+        "不对",
+        "超时",
+    ]
 
     def extract(
         self,
@@ -84,7 +106,8 @@ class AutoFeedbackExtractor:
         if not lowered:
             return ""
         for token in self.PREFERENCE_TOKENS:
-            if token in lowered:
+            haystack = lowered if token.isascii() else user_text
+            if token in haystack:
                 return normalize_text(user_text)
         return ""
 
@@ -109,4 +132,3 @@ class AutoFeedbackExtractor:
             return dict(feedback)
         raw = normalize_text(feedback)
         return {"status": "positive", "lesson": raw, "source": "explicit", "confidence": 1.0}
-

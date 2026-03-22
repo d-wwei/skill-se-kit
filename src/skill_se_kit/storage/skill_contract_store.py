@@ -16,6 +16,7 @@ class SkillContractStore:
                 "managed_files": [],
                 "evaluation_cases": [],
                 "auto_promote_min_improvement": 0.0,
+                "min_feedback_confidence": 0.35,
                 "runtime_mode": "auto",
                 "auto_feedback": True,
                 "human_reports": True,
@@ -28,6 +29,7 @@ class SkillContractStore:
         managed_files: Optional[List[Dict[str, Any]]] = None,
         evaluation_cases: Optional[List[Dict[str, Any]]] = None,
         auto_promote_min_improvement: float = 0.0,
+        min_feedback_confidence: Optional[float] = None,
         runtime_mode: Optional[str] = None,
         auto_feedback: Optional[bool] = None,
         human_reports: Optional[bool] = None,
@@ -39,6 +41,8 @@ class SkillContractStore:
         if evaluation_cases is not None:
             contract["evaluation_cases"] = evaluation_cases
         contract["auto_promote_min_improvement"] = float(auto_promote_min_improvement)
+        if min_feedback_confidence is not None:
+            contract["min_feedback_confidence"] = float(min_feedback_confidence)
         if runtime_mode is not None:
             contract["runtime_mode"] = str(runtime_mode)
         if auto_feedback is not None:

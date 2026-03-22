@@ -12,6 +12,9 @@ dependencies = [
   "jsonschema>=4.23,<5",
 ]
 
+[project.scripts]
+skill-se-kit = "skill_se_kit.cli:main"
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 

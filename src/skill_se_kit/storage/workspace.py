@@ -82,6 +82,10 @@ class SkillWorkspace:
         return self._metadata_root / "skill_contract.json"
 
     @property
+    def auto_integration_path(self) -> Path:
+        return self._metadata_root / "auto_integration.json"
+
+    @property
     def audit_summaries_dir(self) -> Path:
         return self.root / "audit" / "summaries"
 

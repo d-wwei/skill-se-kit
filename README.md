@@ -11,8 +11,11 @@ The internal Python module path is `skill_se_kit`.
 ## Core Capabilities
 
 - one-click easy integration for agents and skills
+- `skill-se-kit init` auto-bootstrap for near zero-touch onboarding
 - configurable run modes: `off`, `manual`, `auto`
 - automatic feedback extraction from user input and execution results
+- confidence-aware learning that skips weak signals by default
+- English and Chinese preference detection
 - human-readable evolution reports
 - autonomous dual-loop evolution for integrated skills
 - execution-time retrieval from skill bank and experience bank
@@ -64,17 +67,41 @@ python3 -m pip install .
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
+Bootstrap an existing skill workspace:
+
+```bash
+skill-se-kit init --skill-root /path/to/skill --protocol-root /path/to/skill-evolution-protocol
+skill-se-kit run --skill-root /path/to/skill --input-json '{"task":"draft memo","user_input":"Always include a summary."}'
+skill-se-kit report --skill-root /path/to/skill
+```
+
 ## Foolproof Usage
 
 Use `EasyIntegrator.one_click(...)` or `SkillRuntime.enable_easy_integration(...)`
 to bootstrap a skill workspace, register the executor, set the run mode, and
 enable auto-feedback plus human reports in one step.
 
+For existing skills that want an install-and-go path, use `skill-se-kit init`.
+It will:
+
+- discover the protocol repository
+- bootstrap manifests and workspace layout if missing
+- auto-detect a conventional executor when possible
+- create `.skill_se_kit/auto_integration.json`
+- patch `SKILL.md` with a wrapper hint when `SKILL.md` exists
+- enable `run` and `report` CLI entrypoints for agents and humans
+
 Run modes:
 
 - `off`: bypass the kit and call the executor directly
 - `manual`: run the kit but do not auto-learn
 - `auto`: run the kit and auto-trigger evolution
+
+Auto-feedback defaults:
+
+- explicit user preferences like `always`, `never`, `must`, `每次都`, `必须`, `不要`
+- execution failures inferred from result status, stderr, or exit code
+- low-confidence generic signals are stored as experience but skipped for skill-bank mutation
 
 ## Skill Storage Layering
 
@@ -105,6 +132,7 @@ Run modes:
     snapshots/
     framework_policy/
     skill_contract.json
+    auto_integration.json
   reports/
     evolution/
 ```
@@ -120,6 +148,7 @@ Start with:
 - [Minimal Integration Example](examples/minimal_skill_integration.py)
 - [Easy Mode Example](examples/easy_mode_skill.py)
 - [Autonomous Native Skill Example](examples/autonomous_native_skill.py)
+- `skill-se-kit init`, `skill-se-kit run`, `skill-se-kit report`
 
 ## Relationship To Other Repositories
 

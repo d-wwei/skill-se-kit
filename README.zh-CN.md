@@ -10,8 +10,11 @@
 ## 核心能力
 
 - 面向 agent 和 skill 的一键轻松集成
+- `skill-se-kit init` 自动接管式初始化
 - 可配置运行模式：`off`、`manual`、`auto`
 - 从用户输入和执行结果中自动提取反馈
+- 基于置信度的学习门禁，默认跳过弱信号
+- 中英文偏好表达识别
 - 面向人类的可读进化报告
 - 面向集成 skill 的自治双循环进化
 - 执行时从 skill bank 与 experience bank 检索知识
@@ -63,6 +66,14 @@ python3 -m pip install .
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
+把一个已有 skill 自动接入：
+
+```bash
+skill-se-kit init --skill-root /path/to/skill --protocol-root /path/to/skill-evolution-protocol
+skill-se-kit run --skill-root /path/to/skill --input-json '{"task":"draft memo","user_input":"Always include a summary."}'
+skill-se-kit report --skill-root /path/to/skill
+```
+
 ## 傻瓜式使用
 
 可以使用 `EasyIntegrator.one_click(...)` 或
@@ -74,11 +85,26 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 - 打开自动反馈
 - 打开人类可读报告
 
+如果是已有 skill，优先使用 `skill-se-kit init`。它会自动：
+
+- 发现 protocol 仓库
+- 在缺失时补齐 manifest 和 workspace 布局
+- 尽量自动识别标准 executor
+- 生成 `.skill_se_kit/auto_integration.json`
+- 若存在 `SKILL.md`，自动写入 wrapper 提示
+- 打通 `run` 和 `report` CLI 入口，方便 agent 与人类使用
+
 运行模式：
 
 - `off`：不运行 kit，只直接调用 executor
 - `manual`：运行 kit，但不自动学习
 - `auto`：运行 kit，并自动触发进化
+
+自动反馈默认会优先消费：
+
+- 显式偏好，如 `always`、`never`、`must`、`每次都`、`必须`、`不要`
+- 结果中的失败信号，如错误状态、stderr、非零退出码
+- 低置信度的泛化信号会被记录，但默认不会推动 skill bank 变更
 
 ## Skill 存储分层
 
@@ -109,6 +135,7 @@ python3 -m unittest discover -s tests -p 'test_*.py'
     snapshots/
     framework_policy/
     skill_contract.json
+    auto_integration.json
   reports/
     evolution/
 ```
@@ -124,6 +151,7 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 - [最小集成示例](examples/minimal_skill_integration.py)
 - [一键模式示例](examples/easy_mode_skill.py)
 - [自治 skill 示例](examples/autonomous_native_skill.py)
+- `skill-se-kit init`、`skill-se-kit run`、`skill-se-kit report`
 
 ## 与其他仓库的关系
 

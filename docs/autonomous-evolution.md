@@ -11,6 +11,13 @@ governance runtime:
 - experience-to-skill add/merge/discard management
 - regression-gated candidate promotion with rollback
 
+The latest product layer also adds:
+
+- `skill-se-kit init` auto-bootstrap for existing skills
+- confidence-aware learning gates so weak signals do not mutate the skill bank
+- English and Chinese preference extraction for common policy phrases
+- richer human-readable evolution reports in `reports/evolution/latest.md`
+
 ## Loop Structure
 
 ### Left Loop: Response Generation
@@ -64,6 +71,9 @@ For zero-config style integration, the product layer also exposes:
 
 - `EasyIntegrator.one_click(...)`
 - `SkillRuntime.enable_easy_integration(...)`
+- `skill-se-kit init`
+- `skill-se-kit run`
+- `skill-se-kit report`
 
 ## Storage Additions
 
@@ -89,6 +99,7 @@ Autonomous local promotion requires:
 - passing verification hooks
 - non-regressive benchmark result, when evaluation cases are configured
 - improvement meeting `auto_promote_min_improvement`
+- feedback confidence meeting `min_feedback_confidence`
 - standalone governance mode
 
 In governed mode, the engine still learns locally, but promotion remains external.

@@ -73,6 +73,35 @@ class EasyModeTests(unittest.TestCase):
             lesson = result["autonomous_cycle"]["experience"]["lesson"]
             self.assertIn("Always include a concise executive summary", lesson)
 
+    def test_low_confidence_feedback_skips_skill_update(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime = SkillRuntime(skill_root=tmpdir, protocol_root=PROTOCOL_ROOT)
+            runtime.enable_easy_integration(
+                manifest=self._manifest(),
+                executor=lambda input, context: {},
+                run_mode="auto",
+            )
+            result = runtime.run_integrated_skill({"task": "silent task"})
+            self.assertEqual(result["autonomous_cycle"]["decision"]["action"], "skip")
+            self.assertEqual(result["autonomous_cycle"]["decision"]["reason"], "low_feedback_confidence")
+
+    def test_auto_feedback_extracts_lesson_from_chinese_user_input(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime = SkillRuntime(skill_root=tmpdir, protocol_root=PROTOCOL_ROOT)
+            runtime.enable_easy_integration(
+                manifest=self._manifest(),
+                executor=lambda input, context: {"text": "已完成报告"},
+                run_mode="auto",
+            )
+            result = runtime.run_integrated_skill(
+                {"task": "撰写报告"},
+                context={"user_input": "每次都要先做安全检查，不要跳过验证。"},
+            )
+            lesson = result["autonomous_cycle"]["experience"]["lesson"]
+            self.assertIn("每次都要先做安全检查", lesson)
+            report_md = Path(tmpdir) / "reports" / "evolution" / "latest.md"
+            self.assertIn("Feedback Confidence", report_md.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

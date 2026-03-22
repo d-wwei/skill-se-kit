@@ -110,6 +110,16 @@ python3 -m pip install skill-se-kit
 For the easiest integration path, prefer `EasyIntegrator.one_click(...)` or
 `SkillRuntime.enable_easy_integration(...)`.
 
+For existing skills that want install-and-go onboarding, prefer:
+
+```bash
+skill-se-kit init --skill-root /path/to/skill --protocol-root /path/to/skill-evolution-protocol
+```
+
+This command auto-discovers a conventional executor when possible, writes
+`.skill_se_kit/auto_integration.json`, and patches `SKILL.md` with a wrapper
+hint if `SKILL.md` exists.
+
 ### 2. Create A Manifest
 
 Start from:
@@ -161,8 +171,17 @@ For a fully autonomous integrated skill, also use:
 For foolproof product-style integration, use:
 
 - `EasyIntegrator.one_click(...)`
+- `skill-se-kit init`
+- `skill-se-kit run`
+- `skill-se-kit report`
 - `run_integrated_skill(...)`
 - `get_latest_evolution_summary()`
+
+The CLI path is the closest thing to "install and go":
+
+1. run `skill-se-kit init`
+2. let the agent or caller use `skill-se-kit run`
+3. read `reports/evolution/latest.md` or `skill-se-kit report`
 
 ## Minimal Example
 
@@ -258,6 +277,8 @@ That gives the skill:
 - cross-rollout critique
 - skill add/merge/discard management
 - proposal creation
+- confidence-aware learning gates
+- multilingual preference extraction for common English and Chinese policy phrases
 - regression-gated local promotion
 
 ## Foolproof Product Mode
