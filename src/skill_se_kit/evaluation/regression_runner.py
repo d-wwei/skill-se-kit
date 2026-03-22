@@ -34,6 +34,8 @@ class RegressionRunner:
         case_results: List[Dict[str, Any]] = []
         baseline_passes = 0
         candidate_passes = 0
+        repairable_failures = 0
+        strict_failures = 0
         for case in cases:
             case_context = dict(case.get("context") or {})
             query_text = str(case.get("input") or "")
@@ -69,22 +71,34 @@ class RegressionRunner:
             candidate_pass = self._case_passed(candidate_output, case)
             baseline_passes += 1 if baseline_pass else 0
             candidate_passes += 1 if candidate_pass else 0
+            if not candidate_pass and case.get("repair_actions_on_fail"):
+                repairable_failures += 1
+            if not candidate_pass and case.get("require_candidate_pass"):
+                strict_failures += 1
             case_results.append(
                 {
                     "case_id": case["id"],
                     "baseline_pass": baseline_pass,
                     "candidate_pass": candidate_pass,
+                    "baseline_output": baseline_output,
+                    "candidate_output": candidate_output,
+                    "repair_actions_on_fail": list(case.get("repair_actions_on_fail") or []),
                 }
             )
 
         baseline_rate = baseline_passes / len(cases)
         candidate_rate = candidate_passes / len(cases)
         improvement = candidate_rate - baseline_rate
+        status = "pass" if candidate_rate >= baseline_rate else "fail"
+        if repairable_failures or strict_failures:
+            status = "fail"
         return {
-            "status": "pass" if candidate_rate >= baseline_rate else "fail",
+            "status": status,
             "baseline_pass_rate": baseline_rate,
             "candidate_pass_rate": candidate_rate,
             "improvement": improvement,
+            "repairable_failures": repairable_failures,
+            "strict_failures": strict_failures,
             "cases": case_results,
         }
 
@@ -95,4 +109,3 @@ class RegressionRunner:
         must_not_contain = [item.lower() for item in ensure_list(case.get("must_not_contain"))]
         lowered = text.lower()
         return all(item in lowered for item in must_contain) and all(item not in lowered for item in must_not_contain)
-

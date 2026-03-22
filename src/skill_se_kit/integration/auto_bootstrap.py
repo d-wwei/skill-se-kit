@@ -136,12 +136,13 @@ def initialize_auto_integration(
     evaluation_cases: Optional[list[Dict[str, Any]]] = None,
     auto_promote_min_improvement: float = 0.0,
     min_feedback_confidence: float = 0.35,
+    max_repair_rounds: int = 1,
     patch_skill_markdown: bool = True,
 ) -> Dict[str, Any]:
     workspace = SkillWorkspace(skill_root)
     workspace.ensure_layout()
     executor = executor_spec or discover_executor_spec(skill_root)
-    managed = managed_files or _discover_managed_files(skill_root)
+    managed = managed_files or _discover_managed_files(skill_root, executor)
     payload = {
         "configured_at": utc_now_iso(),
         "skill_root": str(Path(skill_root).expanduser().resolve()),
@@ -151,6 +152,7 @@ def initialize_auto_integration(
         "human_reports": bool(human_reports),
         "auto_promote_min_improvement": float(auto_promote_min_improvement),
         "min_feedback_confidence": float(min_feedback_confidence),
+        "max_repair_rounds": int(max_repair_rounds),
         "managed_files": managed,
         "evaluation_cases": evaluation_cases or [],
         "executor": executor,
@@ -206,14 +208,27 @@ def _discover_shell_command(root: Path) -> Optional[list[str]]:
     return None
 
 
-def _discover_managed_files(skill_root: str | Path) -> list[Dict[str, Any]]:
+def _discover_managed_files(skill_root: str | Path, executor_spec: Optional[Dict[str, Any]] = None) -> list[Dict[str, Any]]:
     root = Path(skill_root).expanduser().resolve()
     managed = []
     if (root / "SKILL.md").exists():
         managed.append({"path": "SKILL.md", "kind": "markdown"})
     if (root / "README.md").exists():
         managed.append({"path": "README.md", "kind": "markdown"})
-    return managed
+    if executor_spec:
+        if executor_spec.get("kind") == "python_file":
+            managed.append({"path": executor_spec["path"], "kind": "code"})
+        for path in executor_spec.get("script_inventory", []) or []:
+            managed.append({"path": path, "kind": "code"})
+    deduped = []
+    seen = set()
+    for item in managed:
+        key = item["path"]
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(item)
+    return deduped
 
 
 def _discover_script_inventory(root: Path) -> list[str]:

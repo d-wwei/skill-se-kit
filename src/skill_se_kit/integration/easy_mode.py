@@ -22,6 +22,7 @@ class EasyIntegrator:
         human_reports: bool = True,
         auto_promote_min_improvement: float = 0.0,
         min_feedback_confidence: float = 0.35,
+        max_repair_rounds: int = 1,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> SkillRuntime:
         if manifest is not None:
@@ -34,6 +35,7 @@ class EasyIntegrator:
             evaluation_cases=evaluation_cases,
             auto_promote_min_improvement=auto_promote_min_improvement,
             min_feedback_confidence=min_feedback_confidence,
+            max_repair_rounds=max_repair_rounds,
             runtime_mode=run_mode,
             auto_feedback=auto_feedback,
             human_reports=human_reports,
@@ -56,6 +58,7 @@ class EasyIntegrator:
         human_reports: bool = True,
         auto_promote_min_improvement: float = 0.0,
         min_feedback_confidence: float = 0.35,
+        max_repair_rounds: int = 1,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> SkillRuntime:
         runtime = SkillRuntime(skill_root=skill_root, protocol_root=protocol_root)
@@ -70,5 +73,6 @@ class EasyIntegrator:
             human_reports=human_reports,
             auto_promote_min_improvement=auto_promote_min_improvement,
             min_feedback_confidence=min_feedback_confidence,
+            max_repair_rounds=max_repair_rounds,
             metadata=metadata,
         )

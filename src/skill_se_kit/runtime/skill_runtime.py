@@ -15,6 +15,7 @@ from skill_se_kit.governance.local_promoter import LocalPromoter
 from skill_se_kit.integration.auto_bootstrap import load_auto_integration_config, load_executor_from_spec
 from skill_se_kit.provenance.store import ProvenanceStore
 from skill_se_kit.protocol.adapter import ProtocolAdapter
+from skill_se_kit.repair.planner import RepairPlanner
 from skill_se_kit.reporting.evolution_reporter import EvolutionReporter
 from skill_se_kit.storage.experience_store import ExperienceStore
 from skill_se_kit.storage.knowledge_store import KnowledgeStore
@@ -38,6 +39,7 @@ class SkillRuntime:
             evaluation_cases=config.get("evaluation_cases"),
             auto_promote_min_improvement=config.get("auto_promote_min_improvement", 0.0),
             min_feedback_confidence=config.get("min_feedback_confidence", 0.35),
+            max_repair_rounds=config.get("max_repair_rounds", 1),
             runtime_mode=config.get("runtime_mode"),
             auto_feedback=config.get("auto_feedback"),
             human_reports=config.get("human_reports"),
@@ -56,6 +58,7 @@ class SkillRuntime:
         self.reporter = EvolutionReporter(self.workspace)
         self.verification_registry = VerificationHookRegistry(self.workspace)
         self.knowledge_store = KnowledgeStore(self.workspace)
+        self.repair_planner = RepairPlanner(self.workspace, self.contract_store)
         self._executor = None
         self._rewriter = None
         self.experience_store = ExperienceStore(self.workspace, self.protocol_adapter, self.version_store)
@@ -110,6 +113,7 @@ class SkillRuntime:
             self.audit_logger,
             self.provenance_store,
             self.contract_store,
+            self.repair_planner,
         )
 
     def execute(self, input: Dict[str, Any], context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -234,6 +238,7 @@ class SkillRuntime:
         evaluation_cases: Optional[list[Dict[str, Any]]] = None,
         auto_promote_min_improvement: float = 0.0,
         min_feedback_confidence: Optional[float] = None,
+        max_repair_rounds: Optional[int] = None,
         runtime_mode: Optional[str] = None,
         auto_feedback: Optional[bool] = None,
         human_reports: Optional[bool] = None,
@@ -244,6 +249,7 @@ class SkillRuntime:
             evaluation_cases=evaluation_cases,
             auto_promote_min_improvement=auto_promote_min_improvement,
             min_feedback_confidence=min_feedback_confidence,
+            max_repair_rounds=max_repair_rounds,
             runtime_mode=runtime_mode,
             auto_feedback=auto_feedback,
             human_reports=human_reports,
@@ -255,6 +261,9 @@ class SkillRuntime:
 
     def register_rewriter(self, rewriter) -> None:
         self._rewriter = rewriter
+
+    def register_repair_adapter(self, name: str, adapter) -> None:
+        self.repair_planner.register_adapter(name, adapter)
 
     def autonomous_improve(
         self,
@@ -302,6 +311,7 @@ class SkillRuntime:
         human_reports: bool = True,
         auto_promote_min_improvement: float = 0.0,
         min_feedback_confidence: float = 0.35,
+        max_repair_rounds: int = 1,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> "SkillRuntime":
         if manifest is not None:
@@ -314,6 +324,7 @@ class SkillRuntime:
             evaluation_cases=evaluation_cases,
             auto_promote_min_improvement=auto_promote_min_improvement,
             min_feedback_confidence=min_feedback_confidence,
+            max_repair_rounds=max_repair_rounds,
             runtime_mode=run_mode,
             auto_feedback=auto_feedback,
             human_reports=human_reports,

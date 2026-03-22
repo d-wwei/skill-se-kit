@@ -32,6 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--protocol-root")
     init_parser.add_argument("--run-mode", default="auto", choices=["off", "manual", "auto"])
     init_parser.add_argument("--min-feedback-confidence", type=float, default=0.35)
+    init_parser.add_argument("--max-repair-rounds", type=int, default=1)
     init_parser.add_argument("--no-skill-md-patch", action="store_true")
     init_parser.set_defaults(handler=_handle_init)
 
@@ -77,6 +78,7 @@ def _handle_init(args) -> int:
         protocol_root=protocol_root,
         runtime_mode=args.run_mode,
         min_feedback_confidence=args.min_feedback_confidence,
+        max_repair_rounds=args.max_repair_rounds,
         patch_skill_markdown=not args.no_skill_md_patch,
     )
     runtime.configure_integration(
@@ -87,6 +89,7 @@ def _handle_init(args) -> int:
         auto_feedback=config["auto_feedback"],
         human_reports=config["human_reports"],
         min_feedback_confidence=config["min_feedback_confidence"],
+        max_repair_rounds=config.get("max_repair_rounds", 1),
         metadata={"auto_init": True, "executor": config["executor"]},
     )
 

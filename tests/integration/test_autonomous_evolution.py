@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
@@ -89,6 +90,119 @@ class AutonomousEvolutionTests(unittest.TestCase):
             rolled_back_bank = runtime.knowledge_store.load_skill_bank()
             self.assertEqual(len(rolled_back_bank), 1)
             self.assertEqual(rolled_back_bank[0]["version"], "0.1.0")
+
+    def test_autonomous_cycle_can_apply_structured_code_repair_actions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime = self._runtime(tmpdir)
+            logic_path = Path(tmpdir) / "logic.py"
+            logic_path.write_text(
+                "ALIASES = {'us_chip': 'BK9999'}\n"
+                "def resolve_alias(name):\n"
+                "    return ALIASES.get(name, 'UNKNOWN')\n",
+                encoding="utf-8",
+            )
+            runtime.configure_integration(
+                managed_files=[{"path": "logic.py", "kind": "code"}],
+                evaluation_cases=[
+                    {
+                        "id": "alias-fix",
+                        "input": {"task": "resolve alias", "alias": "us_ai"},
+                        "must_contain": ["BK8888"],
+                    }
+                ],
+            )
+
+            def executor(input, context):
+                module = self._load_module(logic_path)
+                if context.get("candidate_file_patches", {}).get("logic.py"):
+                    patched = Path(tmpdir) / "logic_candidate.py"
+                    patched.write_text(context["candidate_file_patches"]["logic.py"], encoding="utf-8")
+                    module = self._load_module(patched)
+                return {"text": module.resolve_alias(input["alias"])}
+
+            runtime.register_executor(executor)
+            cycle = runtime.run_autonomous_cycle(
+                {"task": "resolve alias", "alias": "us_ai"},
+                feedback={
+                    "status": "negative",
+                    "lesson": "US AI alias is missing.",
+                    "repair_actions": [
+                        {
+                            "adapter": "python_dict_set",
+                            "path": "logic.py",
+                            "target": "ALIASES",
+                            "key": "us_ai",
+                            "value": "BK8888",
+                        }
+                    ],
+                },
+            )["autonomous_cycle"]
+
+            self.assertIsNotNone(cycle["promotion"])
+            self.assertIn("'us_ai': 'BK8888'", logic_path.read_text(encoding="utf-8"))
+            repaired = runtime.execute({"task": "resolve alias", "alias": "us_ai"})
+            self.assertIn("BK8888", repaired["result"]["text"])
+
+    def test_failed_evaluation_case_can_trigger_automatic_followup_repair_round(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runtime = self._runtime(tmpdir)
+            prompt_path = Path(tmpdir) / "prompt_rules.py"
+            prompt_path.write_text(
+                "INCLUDE_SUMMARY = False\n"
+                "def render():\n"
+                "    return 'Plan only'\n",
+                encoding="utf-8",
+            )
+            runtime.configure_integration(
+                managed_files=[{"path": "prompt_rules.py", "kind": "code"}],
+                evaluation_cases=[
+                    {
+                        "id": "summary-required",
+                        "input": {"task": "draft memo"},
+                        "must_contain": ["summary"],
+                        "repair_actions_on_fail": [
+                            {
+                                "adapter": "replace_text",
+                                "path": "prompt_rules.py",
+                                "old": "INCLUDE_SUMMARY = False",
+                                "new": "INCLUDE_SUMMARY = True",
+                            }
+                        ],
+                    }
+                ],
+                max_repair_rounds=1,
+            )
+
+            def executor(input, context):
+                module = self._load_module(prompt_path)
+                if context.get("candidate_file_patches", {}).get("prompt_rules.py"):
+                    patched = Path(tmpdir) / "prompt_rules_candidate.py"
+                    patched.write_text(context["candidate_file_patches"]["prompt_rules.py"], encoding="utf-8")
+                    module = self._load_module(patched)
+                text = module.render()
+                if "INCLUDE_SUMMARY = True" in Path(module.__file__).read_text(encoding="utf-8"):
+                    text += " Summary included"
+                return {"text": text}
+
+            runtime.register_executor(executor)
+            cycle = runtime.run_autonomous_cycle(
+                {"task": "draft memo"},
+                feedback={"status": "positive", "lesson": "Add a summary block for memo outputs."},
+            )["autonomous_cycle"]
+
+            self.assertEqual(cycle["evaluation"]["status"], "pass")
+            self.assertIsNotNone(cycle["promotion"])
+            self.assertIn("INCLUDE_SUMMARY = True", prompt_path.read_text(encoding="utf-8"))
+            improved = runtime.execute({"task": "draft memo"})
+            self.assertIn("summary", improved["result"]["text"].lower())
+
+    @staticmethod
+    def _load_module(path: Path):
+        spec = importlib.util.spec_from_file_location(f"mod_{path.stem}_{path.name}", path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec is not None and spec.loader is not None
+        spec.loader.exec_module(module)
+        return module
 
 
 if __name__ == "__main__":

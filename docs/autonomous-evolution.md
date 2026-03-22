@@ -18,6 +18,7 @@ The latest product layer also adds:
 - English and Chinese preference extraction for common policy phrases
 - multilingual tokenization so Chinese lessons can be retrieved later
 - richer human-readable evolution reports in `reports/evolution/latest.md`
+- automatic repair rounds that can turn failing evaluation evidence into file patches
 
 ## Loop Structure
 
@@ -102,6 +103,22 @@ Autonomous local promotion requires:
 - non-regressive benchmark result, when evaluation cases are configured
 - improvement meeting `auto_promote_min_improvement`
 - feedback confidence meeting `min_feedback_confidence`
+- any configured repair rounds must converge to a passing evaluation
 - standalone governance mode
+
+## Automatic Repair Path
+
+The autonomous loop can now go beyond skill-bank learning:
+
+1. observe a defect or optimization opportunity
+2. derive `repair_actions` or `optimization_actions`
+3. build `file_patches` for managed files
+4. evaluate the candidate bundle
+5. if evaluation still fails and the failed case includes `repair_actions_on_fail`,
+   run an automatic repair round
+6. promote only when the repaired candidate passes
+
+This makes `Skill-SE-Kit` suitable for integrated skills that need code changes
+to land automatically, not only knowledge notes.
 
 In governed mode, the engine still learns locally, but promotion remains external.

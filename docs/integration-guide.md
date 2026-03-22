@@ -184,6 +184,30 @@ The CLI path is the closest thing to "install and go":
 3. read `reports/evolution/latest.md` or `skill-se-kit report`
 4. use `skill-se-kit rollback --snapshot-id ...` if a promoted candidate should be reverted
 
+## Automatic Code Repair And Optimization
+
+To let `Skill-SE-Kit` land real code changes instead of only recording lessons:
+
+1. include code files in `managed_files`
+2. provide structured `repair_actions` or `optimization_actions` through feedback or executor results
+3. optionally configure `repair_actions_on_fail` in `evaluation_cases`
+4. set `max_repair_rounds` to allow one or more repair retries before promotion
+
+Supported built-in adapters include:
+
+- `replace_text`
+- `insert_after`
+- `append_text`
+- `python_dict_set`
+- `python_list_add`
+
+You can also register custom repair adapters through
+`runtime.register_repair_adapter(name, adapter)` or provide a custom rewriter.
+
+If a candidate fails an evaluation case that includes `repair_actions_on_fail`,
+the autonomous engine will generate new file patches, rerun evaluation, and only
+promote once the repair passes.
+
 ## Minimal Example
 
 See:

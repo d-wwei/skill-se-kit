@@ -19,6 +19,7 @@ The internal Python module path is `skill_se_kit`.
 - multilingual retrieval tokens for English and Chinese knowledge reuse
 - human-readable evolution reports
 - autonomous dual-loop evolution for integrated skills
+- automatic file patch generation, code repair, and code optimization for managed files
 - execution-time retrieval from skill bank and experience bank
 - interaction-to-experience extraction
 - add/merge/discard skill management
@@ -152,6 +153,7 @@ Start with:
 - [Minimal Integration Example](examples/minimal_skill_integration.py)
 - [Easy Mode Example](examples/easy_mode_skill.py)
 - [Autonomous Native Skill Example](examples/autonomous_native_skill.py)
+- [Autonomous Code Repair Example](examples/autonomous_code_repair.py)
 - `skill-se-kit init`, `skill-se-kit run`, `skill-se-kit report`
 
 ## Relationship To Other Repositories

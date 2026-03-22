@@ -18,6 +18,7 @@
 - 支持英文和中文知识复用的多语言检索 token
 - 面向人类的可读进化报告
 - 面向集成 skill 的自治双循环进化
+- 针对 managed files 的自动补丁生成、代码修复与代码优化
 - 执行时从 skill bank 与 experience bank 检索知识
 - 从交互反馈中自动提炼经验
 - `add / merge / discard` 的 skill 管理
@@ -155,6 +156,7 @@ skill-se-kit rollback --skill-root /path/to/skill --snapshot-id snapshot-xxxx
 - [最小集成示例](examples/minimal_skill_integration.py)
 - [一键模式示例](examples/easy_mode_skill.py)
 - [自治 skill 示例](examples/autonomous_native_skill.py)
+- [自治代码修复示例](examples/autonomous_code_repair.py)
 - `skill-se-kit init`、`skill-se-kit run`、`skill-se-kit report`
 
 ## 与其他仓库的关系

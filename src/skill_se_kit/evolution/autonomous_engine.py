@@ -24,6 +24,7 @@ class AutonomousEvolutionEngine:
         audit_logger=None,
         provenance_store=None,
         contract_store=None,
+        repair_planner=None,
         regression_runner=None,
     ):
         self.workspace = workspace
@@ -35,6 +36,7 @@ class AutonomousEvolutionEngine:
         self.audit_logger = audit_logger
         self.provenance_store = provenance_store
         self.contract_store = contract_store
+        self.repair_planner = repair_planner
         self.regression_runner = regression_runner
 
     def execute(self, input: Dict[str, Any], context: Optional[Dict[str, Any]], executor) -> Dict[str, Any]:
@@ -111,7 +113,16 @@ class AutonomousEvolutionEngine:
                 "promotion": None,
             }
 
-        file_patches = self._build_file_patches(experience, decision, rewriter)
+        contract = self.contract_store.load_contract() if self.contract_store is not None else {"managed_files": []}
+        managed_files = list(contract.get("managed_files") or [])
+        file_patches = self._build_file_patches(
+            experience=experience,
+            decision=decision,
+            feedback=feedback_payload,
+            rollout=rollout,
+            managed_files=managed_files,
+            rewriter=rewriter,
+        )
         active_manifest = self.version_store.load_active_manifest()
         candidate_manifest = dict(active_manifest)
         candidate_manifest["version"] = bump_patch_version(active_manifest["version"])
@@ -146,6 +157,33 @@ class AutonomousEvolutionEngine:
             source_origin="autonomous-engine",
             metadata={"autonomous": True},
         )
+        repair_round = 0
+        max_repair_rounds = int(contract.get("max_repair_rounds", 1)) if self.contract_store is not None else 1
+        while evaluation["status"] == "fail" and repair_round < max_repair_rounds:
+            followup_actions = []
+            if self.repair_planner is not None:
+                followup_actions = self.repair_planner.collect_evaluation_actions(evaluation)
+            if not followup_actions:
+                break
+            repair_round += 1
+            file_patches = self._build_file_patches(
+                experience=experience,
+                decision=decision,
+                feedback=feedback_payload,
+                rollout=rollout,
+                managed_files=managed_files,
+                rewriter=rewriter,
+                extra_actions=followup_actions,
+                current_patches=file_patches,
+            )
+            bundle["file_patches"] = file_patches
+            bundle["repair_round"] = repair_round
+            self.knowledge_store.save_candidate_bundle(proposal["proposal_id"], bundle)
+            evaluation = self.local_evaluator.evaluate_proposal(
+                proposal["proposal_id"],
+                source_origin="autonomous-engine",
+                metadata={"autonomous": True, "repair_round": repair_round},
+            )
         promotion = None
         min_improvement = 0.0
         if self.contract_store is not None:
@@ -336,26 +374,27 @@ class AutonomousEvolutionEngine:
     def _title_from_experience(experience: Dict[str, Any]) -> str:
         return f"Learned {experience['task_signature']}".strip()
 
-    def _build_file_patches(self, experience: Dict[str, Any], decision: Dict[str, Any], rewriter=None) -> Dict[str, str]:
-        contract = self.contract_store.load_contract() if self.contract_store is not None else {"managed_files": []}
-        managed_files = list(contract.get("managed_files") or [])
-        if rewriter is not None:
-            return rewriter(experience, decision, managed_files)
-
-        patches: Dict[str, str] = {}
-        for descriptor in managed_files:
-            relpath = descriptor["path"]
-            absolute = self.workspace.root / relpath
-            current_text = absolute.read_text(encoding="utf-8") if absolute.exists() else ""
-            patches[relpath] = self._append_learned_rule(current_text, experience["lesson"])
-        return patches
-
-    @staticmethod
-    def _append_learned_rule(current_text: str, lesson: str) -> str:
-        marker = "## Learned Evolution Rules"
-        if marker not in current_text:
-            suffix = "\n\n" if current_text.strip() else ""
-            return f"{current_text.rstrip()}{suffix}{marker}\n- {lesson}\n"
-        if lesson in current_text:
-            return current_text
-        return f"{current_text.rstrip()}\n- {lesson}\n"
+    def _build_file_patches(
+        self,
+        *,
+        experience: Dict[str, Any],
+        decision: Dict[str, Any],
+        feedback: Dict[str, Any],
+        rollout: Dict[str, Any],
+        managed_files: List[Dict[str, Any]],
+        rewriter=None,
+        extra_actions: Optional[List[Dict[str, Any]]] = None,
+        current_patches: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, str]:
+        if self.repair_planner is None:
+            return {}
+        return self.repair_planner.build_file_patches(
+            experience=experience,
+            decision=decision,
+            feedback=feedback,
+            rollout=rollout,
+            managed_files=managed_files,
+            rewriter=rewriter,
+            extra_actions=extra_actions,
+            current_patches=current_patches,
+        )

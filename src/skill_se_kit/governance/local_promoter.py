@@ -99,18 +99,18 @@ class LocalPromoter:
         return None
 
     def _latest_passed_evaluation(self, proposal_id: str) -> Dict[str, Any] | None:
-        latest = None
+        latest_pass = None
         for path in list_json_files(self.workspace.local_evaluations_dir):
             if path.name.endswith(".verification.json"):
                 continue
             receipt = load_json(path)
             if receipt.get("proposal_id") != proposal_id:
                 continue
-            if latest is None or receipt["evaluated_at"] > latest["evaluated_at"]:
-                latest = receipt
-        if latest and latest["status"] == "pass":
-            return latest
-        return None
+            if receipt.get("status") != "pass":
+                continue
+            if latest_pass is None or receipt["evaluated_at"] >= latest_pass["evaluated_at"]:
+                latest_pass = receipt
+        return latest_pass
 
     def _apply_file_patches(self, file_patches: Dict[str, str]) -> None:
         for relative_path, content in (file_patches or {}).items():
