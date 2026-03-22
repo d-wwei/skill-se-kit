@@ -149,7 +149,17 @@ def normalize_text(value: Any) -> str:
 
 
 def tokenize_text(value: Any) -> List[str]:
-    return [token for token in re.findall(r"[A-Za-z0-9_]+", normalize_text(value).lower()) if token]
+    text = normalize_text(value)
+    if not text:
+        return []
+    lowered = text.lower()
+    tokens = [token for token in re.findall(r"[A-Za-z0-9_]+", lowered) if token]
+    han_chars = re.findall(r"[\u4e00-\u9fff]", text)
+    if han_chars:
+        tokens.extend(han_chars)
+        if len(han_chars) >= 2:
+            tokens.extend("".join(han_chars[index : index + 2]) for index in range(len(han_chars) - 1))
+    return tokens
 
 
 def jaccard_similarity(left: Any, right: Any) -> float:

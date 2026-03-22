@@ -16,6 +16,7 @@ The latest product layer also adds:
 - `skill-se-kit init` auto-bootstrap for existing skills
 - confidence-aware learning gates so weak signals do not mutate the skill bank
 - English and Chinese preference extraction for common policy phrases
+- multilingual tokenization so Chinese lessons can be retrieved later
 - richer human-readable evolution reports in `reports/evolution/latest.md`
 
 ## Loop Structure
@@ -74,6 +75,7 @@ For zero-config style integration, the product layer also exposes:
 - `skill-se-kit init`
 - `skill-se-kit run`
 - `skill-se-kit report`
+- `skill-se-kit rollback`
 
 ## Storage Additions
 

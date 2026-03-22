@@ -182,6 +182,7 @@ The CLI path is the closest thing to "install and go":
 1. run `skill-se-kit init`
 2. let the agent or caller use `skill-se-kit run`
 3. read `reports/evolution/latest.md` or `skill-se-kit report`
+4. use `skill-se-kit rollback --snapshot-id ...` if a promoted candidate should be reverted
 
 ## Minimal Example
 
@@ -279,6 +280,7 @@ That gives the skill:
 - proposal creation
 - confidence-aware learning gates
 - multilingual preference extraction for common English and Chinese policy phrases
+- multilingual retrieval support so Chinese lessons can be reused on later executions
 - regression-gated local promotion
 
 ## Foolproof Product Mode

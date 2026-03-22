@@ -53,6 +53,15 @@ def discover_executor_spec(skill_root: str | Path) -> Dict[str, Any]:
             "discovered_by": "shell_entrypoint",
         }
 
+    script_inventory = _discover_script_inventory(root)
+    if script_inventory:
+        return {
+            "kind": "passive",
+            "discovered_by": "script_inventory",
+            "notes": "Multiple executable scripts were found. Add a dispatcher executor to route intents to these scripts for full active integration.",
+            "script_inventory": script_inventory,
+        }
+
     return {
         "kind": "passive",
         "discovered_by": "passive_capture",
@@ -103,10 +112,13 @@ def load_executor_from_spec(skill_root: str | Path, executor_spec: Dict[str, Any
 
     def _passive_executor(input_payload, context):
         user_text = normalize_text((context or {}).get("user_input") or input_payload)
+        guidance = normalize_text(executor_spec.get("notes"))
         return {
             "status": "passive",
             "text": user_text or "Passive capture recorded.",
             "message": "Skill-SE-Kit is active in passive observation mode.",
+            "integration_hint": guidance,
+            "script_inventory": list(executor_spec.get("script_inventory") or []),
         }
 
     return _passive_executor
@@ -202,6 +214,17 @@ def _discover_managed_files(skill_root: str | Path) -> list[Dict[str, Any]]:
     if (root / "README.md").exists():
         managed.append({"path": "README.md", "kind": "markdown"})
     return managed
+
+
+def _discover_script_inventory(root: Path) -> list[str]:
+    scripts_dir = root / "scripts"
+    if not scripts_dir.exists():
+        return []
+    return sorted(
+        str(path.relative_to(root))
+        for path in scripts_dir.rglob("*")
+        if path.is_file() and path.suffix in {".py", ".sh"}
+    )[:25]
 
 
 def _patch_skill_markdown(skill_root: Path, payload: Dict[str, Any]) -> None:

@@ -16,6 +16,7 @@ The internal Python module path is `skill_se_kit`.
 - automatic feedback extraction from user input and execution results
 - confidence-aware learning that skips weak signals by default
 - English and Chinese preference detection
+- multilingual retrieval tokens for English and Chinese knowledge reuse
 - human-readable evolution reports
 - autonomous dual-loop evolution for integrated skills
 - execution-time retrieval from skill bank and experience bank
@@ -73,6 +74,7 @@ Bootstrap an existing skill workspace:
 skill-se-kit init --skill-root /path/to/skill --protocol-root /path/to/skill-evolution-protocol
 skill-se-kit run --skill-root /path/to/skill --input-json '{"task":"draft memo","user_input":"Always include a summary."}'
 skill-se-kit report --skill-root /path/to/skill
+skill-se-kit rollback --skill-root /path/to/skill --snapshot-id snapshot-xxxx
 ```
 
 ## Foolproof Usage
@@ -87,9 +89,11 @@ It will:
 - discover the protocol repository
 - bootstrap manifests and workspace layout if missing
 - auto-detect a conventional executor when possible
+- surface script inventory hints when a dispatcher is still needed
 - create `.skill_se_kit/auto_integration.json`
 - patch `SKILL.md` with a wrapper hint when `SKILL.md` exists
 - enable `run` and `report` CLI entrypoints for agents and humans
+- expose a CLI rollback path for operational recovery
 
 Run modes:
 

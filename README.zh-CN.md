@@ -15,6 +15,7 @@
 - 从用户输入和执行结果中自动提取反馈
 - 基于置信度的学习门禁，默认跳过弱信号
 - 中英文偏好表达识别
+- 支持英文和中文知识复用的多语言检索 token
 - 面向人类的可读进化报告
 - 面向集成 skill 的自治双循环进化
 - 执行时从 skill bank 与 experience bank 检索知识
@@ -72,6 +73,7 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 skill-se-kit init --skill-root /path/to/skill --protocol-root /path/to/skill-evolution-protocol
 skill-se-kit run --skill-root /path/to/skill --input-json '{"task":"draft memo","user_input":"Always include a summary."}'
 skill-se-kit report --skill-root /path/to/skill
+skill-se-kit rollback --skill-root /path/to/skill --snapshot-id snapshot-xxxx
 ```
 
 ## 傻瓜式使用
@@ -90,9 +92,11 @@ skill-se-kit report --skill-root /path/to/skill
 - 发现 protocol 仓库
 - 在缺失时补齐 manifest 和 workspace 布局
 - 尽量自动识别标准 executor
+- 当还缺 dispatcher 时，给出脚本清单提示
 - 生成 `.skill_se_kit/auto_integration.json`
 - 若存在 `SKILL.md`，自动写入 wrapper 提示
 - 打通 `run` 和 `report` CLI 入口，方便 agent 与人类使用
+- 提供 `rollback` CLI 入口，便于恢复
 
 运行模式：
 

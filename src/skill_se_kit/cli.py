@@ -48,6 +48,11 @@ def build_parser() -> argparse.ArgumentParser:
     report_parser = subparsers.add_parser("report", help="Print the latest human-readable evolution summary.")
     report_parser.add_argument("--skill-root", default=".")
     report_parser.set_defaults(handler=_handle_report)
+
+    rollback_parser = subparsers.add_parser("rollback", help="Rollback to a recorded snapshot.")
+    rollback_parser.add_argument("--skill-root", default=".")
+    rollback_parser.add_argument("--snapshot-id", required=True)
+    rollback_parser.set_defaults(handler=_handle_rollback)
     return parser
 
 
@@ -122,6 +127,13 @@ def _handle_report(args) -> int:
     return 0
 
 
+def _handle_rollback(args) -> int:
+    runtime = SkillRuntime.from_auto_integration(args.skill_root)
+    result = runtime.rollback(args.snapshot_id)
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return 0
+
+
 def _parse_json(value: str) -> Dict[str, Any]:
     if value.startswith("@"):
         return json.loads(Path(value[1:]).read_text(encoding="utf-8"))
@@ -152,4 +164,3 @@ def _default_manifest(skill_name: str, protocol_version: str) -> Dict[str, Any]:
         },
         "metadata": {"owner": "skill-se-kit", "auto_initialized": True},
     }
-
