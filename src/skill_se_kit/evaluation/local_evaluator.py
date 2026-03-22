@@ -16,6 +16,7 @@ class LocalEvaluator:
         audit_logger=None,
         provenance_store=None,
         verification_registry=None,
+        regression_runner=None,
     ):
         self.workspace = workspace
         self.protocol_adapter = protocol_adapter
@@ -24,6 +25,7 @@ class LocalEvaluator:
         self.audit_logger = audit_logger
         self.provenance_store = provenance_store
         self.verification_registry = verification_registry
+        self.regression_runner = regression_runner
 
     def evaluate_proposal(
         self,
@@ -64,6 +66,18 @@ class LocalEvaluator:
             if verification_receipt["overall_status"] != "pass":
                 result["status"] = "fail"
                 result["reasons"].append("verification hooks failed")
+
+        benchmark = None
+        if self.regression_runner is not None:
+            bundle = None
+            bundle_path = self.workspace.local_proposals_dir / f"{proposal_document['proposal_id']}.bundle.json"
+            if bundle_path.exists():
+                bundle = load_json(bundle_path)
+            benchmark = self.regression_runner.evaluate_candidate(proposal_document, bundle)
+            result["benchmark"] = benchmark
+            if benchmark["status"] == "fail":
+                result["status"] = "fail"
+                result["reasons"].append("candidate regressed on evaluation cases")
 
         result["evaluated_at"] = utc_now_iso()
         dump_json(

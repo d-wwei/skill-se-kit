@@ -41,6 +41,9 @@ Do not:
 - proposal generation
 - overlay application
 - local evaluation receipts
+- autonomous rollout storage
+- experience-bank and skill-bank management
+- autonomous proposal creation and candidate bundle evaluation
 - standalone promotion flow
 - governed handshake and submission
 - rollback snapshots
@@ -70,6 +73,9 @@ The integrated skill workspace should look like this:
     proposals/
     overlays/
     evaluations/
+    rollouts/
+    experience_bank/
+    skill_bank/
   governed/
     decisions/
     overlays/
@@ -83,6 +89,7 @@ The integrated skill workspace should look like this:
   .skill_se_kit/
     snapshots/
     framework_policy/
+    skill_contract.json
 ```
 
 Protocol-required directories keep their protocol meaning.
@@ -141,6 +148,13 @@ Use the runtime facade for all evolution actions:
 - `promote_candidate(...)`
 - `rollback(...)`
 
+For a fully autonomous integrated skill, also use:
+
+- `register_executor(...)`
+- `configure_integration(...)`
+- `register_rewriter(...)` when managed files should be rewritten
+- `run_autonomous_cycle(...)`
+
 ## Minimal Example
 
 See:
@@ -155,6 +169,10 @@ This example shows a small native skill wrapper that:
 - creates a candidate proposal
 - evaluates the proposal
 - promotes it locally
+
+For a full self-learning example, also see:
+
+- [autonomous_native_skill.py](/Users/admin/Documents/AI/skill%20self-evolution/skill-se-kit/examples/autonomous_native_skill.py)
 
 ## Standalone Integration
 
@@ -211,6 +229,26 @@ def regression_hook(proposal_document, context):
 ```
 
 If any registered hook fails, promotion gating will block local promotion.
+
+## Autonomous Skill Mode
+
+If the integrating skill wants full self-evolution instead of manual proposal
+assembly, the recommended contract is:
+
+1. register an executor that consumes `skill_guidance`,
+   `retrieved_skills`, and `retrieved_experiences`
+2. configure evaluation cases through `configure_integration(...)`
+3. optionally register a rewriter for managed files
+4. call `run_autonomous_cycle(...)` with feedback after an execution
+
+That gives the skill:
+
+- rollout storage
+- experience extraction
+- cross-rollout critique
+- skill add/merge/discard management
+- proposal creation
+- regression-gated local promotion
 
 ## Audit And Provenance Outputs
 

@@ -1,0 +1,333 @@
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+
+from skill_se_kit.common import (
+    bump_patch_version,
+    generate_id,
+    jaccard_similarity,
+    normalize_text,
+    tokenize_text,
+    utc_now_iso,
+)
+
+
+class AutonomousEvolutionEngine:
+    def __init__(
+        self,
+        workspace,
+        version_store,
+        knowledge_store,
+        proposal_generator,
+        local_evaluator,
+        local_promoter,
+        audit_logger=None,
+        provenance_store=None,
+        contract_store=None,
+        regression_runner=None,
+    ):
+        self.workspace = workspace
+        self.version_store = version_store
+        self.knowledge_store = knowledge_store
+        self.proposal_generator = proposal_generator
+        self.local_evaluator = local_evaluator
+        self.local_promoter = local_promoter
+        self.audit_logger = audit_logger
+        self.provenance_store = provenance_store
+        self.contract_store = contract_store
+        self.regression_runner = regression_runner
+
+    def execute(self, input: Dict[str, Any], context: Optional[Dict[str, Any]], executor) -> Dict[str, Any]:
+        task_signature = self._task_signature(input, context)
+        query_text = self._query_text(input, context)
+        retrieved = self.knowledge_store.retrieve_knowledge(query_text=query_text)
+        effective_context = {
+            **(context or {}),
+            "task_signature": task_signature,
+            "retrieved_skills": retrieved["skills"],
+            "retrieved_experiences": retrieved["experiences"],
+            "skill_guidance": "\n".join(skill["content"] for skill in retrieved["skills"]),
+        }
+        result = executor(input, effective_context)
+        execution = {
+            "execution_id": generate_id("execution"),
+            "executed_at": utc_now_iso(),
+            "input": input,
+            "context": context or {},
+            "task_signature": task_signature,
+            "retrieved": retrieved,
+            "result": result,
+        }
+        self.knowledge_store.append_rollout(execution)
+        return {
+            "execution_id": execution["execution_id"],
+            "task_signature": task_signature,
+            "retrieved": retrieved,
+            "result": result,
+        }
+
+    def learn_from_interaction(
+        self,
+        *,
+        execution_id: str,
+        feedback: Dict[str, Any] | str,
+        proposer_id: str = "autonomous-engine",
+        rewriter=None,
+        auto_promote: bool = True,
+    ) -> Dict[str, Any]:
+        rollout = self.knowledge_store.load_rollout(execution_id)
+        feedback_payload = self._normalize_feedback(feedback)
+        experience = self._extract_experience(rollout, feedback_payload)
+        self.knowledge_store.append_experience_item(experience)
+
+        decision, updated_skill_bank = self._decide_skill_update(experience)
+        if decision["action"] == "discard":
+            return {
+                "execution_id": execution_id,
+                "experience": experience,
+                "decision": decision,
+                "proposal": None,
+                "evaluation": None,
+                "promotion": None,
+            }
+
+        file_patches = self._build_file_patches(experience, decision, rewriter)
+        active_manifest = self.version_store.load_active_manifest()
+        candidate_manifest = dict(active_manifest)
+        candidate_manifest["version"] = bump_patch_version(active_manifest["version"])
+        candidate_manifest.setdefault("metadata", {})
+        candidate_manifest["metadata"]["evolution_mode"] = "autonomous"
+
+        experience_path = self.workspace.local_experience_bank_dir / f"{experience['experience_id']}.json"
+        proposal = self.proposal_generator.generate_proposal(
+            change_summary=decision["summary"],
+            proposer_id=proposer_id,
+            target_manifest=candidate_manifest,
+            artifacts=[
+                {"type": "evidence", "ref": str(experience_path.relative_to(self.workspace.root))},
+            ],
+            metadata={"autonomous_decision": decision["action"]},
+        )
+
+        bundle = {
+            "bundle_id": generate_id("bundle"),
+            "created_at": utc_now_iso(),
+            "proposal_id": proposal["proposal_id"],
+            "decision": decision,
+            "experience_id": experience["experience_id"],
+            "skill_bank": updated_skill_bank,
+            "file_patches": file_patches,
+        }
+        bundle_path = self.knowledge_store.save_candidate_bundle(proposal["proposal_id"], bundle)
+        proposal = self._attach_bundle_ref(proposal, bundle_path)
+
+        evaluation = self.local_evaluator.evaluate_proposal(
+            proposal["proposal_id"],
+            source_origin="autonomous-engine",
+            metadata={"autonomous": True},
+        )
+        promotion = None
+        min_improvement = 0.0
+        if self.contract_store is not None:
+            min_improvement = float(self.contract_store.load_contract().get("auto_promote_min_improvement", 0.0))
+        benchmark = evaluation.get("benchmark") or {}
+        benchmark_improvement = float(benchmark.get("improvement", 0.0))
+        should_promote = evaluation["status"] == "pass" and (
+            benchmark.get("status") in (None, "not_run") or benchmark_improvement >= min_improvement
+        )
+        if auto_promote and should_promote and not self.local_promoter.governor_client.detect_governor():
+            promotion = self.local_promoter.promote_candidate(proposal["proposal_id"])
+
+        return {
+            "execution_id": execution_id,
+            "experience": experience,
+            "decision": decision,
+            "proposal": proposal,
+            "evaluation": evaluation,
+            "promotion": promotion,
+        }
+
+    def _attach_bundle_ref(self, proposal: Dict[str, Any], bundle_path) -> Dict[str, Any]:
+        proposal.setdefault("artifacts", [])
+        proposal["artifacts"].append({"type": "note", "ref": str(bundle_path.relative_to(self.workspace.root))})
+        from skill_se_kit.common import dump_json
+
+        dump_json(self.workspace.local_proposals_dir / f"{proposal['proposal_id']}.json", proposal)
+        return proposal
+
+    def _task_signature(self, input: Dict[str, Any], context: Optional[Dict[str, Any]]) -> str:
+        if context and context.get("task_signature"):
+            return str(context["task_signature"])
+        joined = self._query_text(input, context)
+        tokens = tokenize_text(joined)
+        return " ".join(tokens[:8]) or "generic-task"
+
+    @staticmethod
+    def _query_text(input: Dict[str, Any], context: Optional[Dict[str, Any]]) -> str:
+        parts = [normalize_text(input)]
+        if context:
+            parts.append(normalize_text(context.get("query") or context.get("goal") or ""))
+        return " ".join(part for part in parts if part).strip()
+
+    def _normalize_feedback(self, feedback: Dict[str, Any] | str) -> Dict[str, Any]:
+        if isinstance(feedback, dict):
+            return dict(feedback)
+        raw = normalize_text(feedback)
+        status = "positive"
+        if any(token in raw.lower() for token in ["fail", "wrong", "bad", "error", "unsafe"]):
+            status = "negative"
+        return {"status": status, "comment": raw}
+
+    def _extract_experience(self, rollout: Dict[str, Any], feedback: Dict[str, Any]) -> Dict[str, Any]:
+        recent = self.knowledge_store.recent_rollouts(rollout["task_signature"], limit=5)
+        positive_patterns = []
+        negative_patterns = []
+        for item in recent:
+            text = normalize_text(item.get("context", {}).get("feedback") or item.get("result"))
+            if not text:
+                continue
+            if any(word in text.lower() for word in ["good", "pass", "success"]):
+                positive_patterns.append(text)
+            if any(word in text.lower() for word in ["fail", "wrong", "unsafe", "error"]):
+                negative_patterns.append(text)
+
+        lesson = normalize_text(feedback.get("lesson") or feedback.get("suggestion") or feedback.get("comment"))
+        if not lesson:
+            result_text = normalize_text(rollout.get("result"))
+            lesson = f"When handling {rollout['task_signature']}, prefer outputs like: {result_text[:120]}"
+        if feedback.get("status") == "negative" and "avoid" not in lesson.lower():
+            lesson = f"Avoid this failure pattern: {lesson}"
+
+        critique = []
+        if positive_patterns:
+            critique.append(f"Common success pattern: {positive_patterns[-1][:120]}")
+        if negative_patterns:
+            critique.append(f"Common failure pattern: {negative_patterns[-1][:120]}")
+
+        return {
+            "experience_id": generate_id("bank-exp"),
+            "recorded_at": utc_now_iso(),
+            "task_signature": rollout["task_signature"],
+            "feedback_status": feedback.get("status", "unknown"),
+            "feedback_text": lesson,
+            "lesson": lesson,
+            "cross_rollout_critique": critique,
+            "execution_id": rollout["execution_id"],
+        }
+
+    def _decide_skill_update(self, experience: Dict[str, Any]) -> tuple[Dict[str, Any], List[Dict[str, Any]]]:
+        skill_bank = self.knowledge_store.load_skill_bank()
+        lesson = experience["lesson"]
+        if self._should_discard(experience):
+            return (
+                {
+                    "action": "discard",
+                    "summary": f"Discard one-off experience {experience['experience_id']}",
+                },
+                skill_bank,
+            )
+
+        best_match = None
+        best_score = 0.0
+        for skill in skill_bank:
+            score = jaccard_similarity(lesson, skill.get("content", ""))
+            if skill.get("task_signature") == experience["task_signature"]:
+                score += 0.2
+            if score > best_score:
+                best_match = skill
+                best_score = score
+
+        if best_match and best_score >= 0.35:
+            updated = []
+            for skill in skill_bank:
+                if skill["skill_entry_id"] != best_match["skill_entry_id"]:
+                    updated.append(skill)
+                    continue
+                merged_skill = dict(skill)
+                merged_skill["version"] = bump_patch_version(skill["version"])
+                merged_skill["content"] = self._merge_skill_content(skill["content"], experience)
+                merged_skill["updated_at"] = utc_now_iso()
+                merged_skill["source_experience_ids"] = list(skill.get("source_experience_ids", [])) + [experience["experience_id"]]
+                updated.append(merged_skill)
+                best_match = merged_skill
+            return (
+                {
+                    "action": "merge",
+                    "summary": f"Merge experience into skill {best_match['skill_entry_id']}",
+                    "skill_entry_id": best_match["skill_entry_id"],
+                },
+                updated,
+            )
+
+        new_skill = {
+            "skill_entry_id": generate_id("skill"),
+            "title": self._title_from_experience(experience),
+            "content": self._new_skill_content(experience),
+            "version": "0.1.0",
+            "task_signature": experience["task_signature"],
+            "keywords": tokenize_text(experience["lesson"])[:8],
+            "source_experience_ids": [experience["experience_id"]],
+            "updated_at": utc_now_iso(),
+        }
+        return (
+            {
+                "action": "add",
+                "summary": f"Add new learned skill {new_skill['skill_entry_id']}",
+                "skill_entry_id": new_skill["skill_entry_id"],
+            },
+            skill_bank + [new_skill],
+        )
+
+    @staticmethod
+    def _should_discard(experience: Dict[str, Any]) -> bool:
+        text = experience["lesson"].lower()
+        return any(token in text for token in ["one-off", "temporary", "do not reuse", "ignore this"])
+
+    @staticmethod
+    def _merge_skill_content(existing: str, experience: Dict[str, Any]) -> str:
+        additions = [experience["lesson"], *experience.get("cross_rollout_critique", [])]
+        lines = [line.strip() for line in existing.splitlines() if line.strip()]
+        for addition in additions:
+            bullet = f"- {addition}"
+            if bullet not in lines:
+                lines.append(bullet)
+        return "\n".join(lines)
+
+    @staticmethod
+    def _new_skill_content(experience: Dict[str, Any]) -> str:
+        lines = [
+            f"# Learned Rule: {experience['task_signature']}",
+            "",
+            f"- {experience['lesson']}",
+        ]
+        for critique in experience.get("cross_rollout_critique", []):
+            lines.append(f"- {critique}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _title_from_experience(experience: Dict[str, Any]) -> str:
+        return f"Learned {experience['task_signature']}".strip()
+
+    def _build_file_patches(self, experience: Dict[str, Any], decision: Dict[str, Any], rewriter=None) -> Dict[str, str]:
+        contract = self.contract_store.load_contract() if self.contract_store is not None else {"managed_files": []}
+        managed_files = list(contract.get("managed_files") or [])
+        if rewriter is not None:
+            return rewriter(experience, decision, managed_files)
+
+        patches: Dict[str, str] = {}
+        for descriptor in managed_files:
+            relpath = descriptor["path"]
+            absolute = self.workspace.root / relpath
+            current_text = absolute.read_text(encoding="utf-8") if absolute.exists() else ""
+            patches[relpath] = self._append_learned_rule(current_text, experience["lesson"])
+        return patches
+
+    @staticmethod
+    def _append_learned_rule(current_text: str, lesson: str) -> str:
+        marker = "## Learned Evolution Rules"
+        if marker not in current_text:
+            suffix = "\n\n" if current_text.strip() else ""
+            return f"{current_text.rstrip()}{suffix}{marker}\n- {lesson}\n"
+        if lesson in current_text:
+            return current_text
+        return f"{current_text.rstrip()}\n- {lesson}\n"

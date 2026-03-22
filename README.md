@@ -10,6 +10,11 @@ The internal Python module path is `skill_se_kit`.
 
 ## Core Capabilities
 
+- autonomous dual-loop evolution for integrated skills
+- execution-time retrieval from skill bank and experience bank
+- interaction-to-experience extraction
+- add/merge/discard skill management
+- candidate rewrite bundles with regression-gated promotion
 - experience recording
 - proposal generation
 - overlay application
@@ -67,6 +72,9 @@ python3 -m unittest discover -s tests -p 'test_*.py'
     proposals/
     overlays/
     evaluations/
+    rollouts/
+    experience_bank/
+    skill_bank/
   governed/
     decisions/
     overlays/
@@ -80,6 +88,7 @@ python3 -m unittest discover -s tests -p 'test_*.py'
   .skill_se_kit/
     snapshots/
     framework_policy/
+    skill_contract.json
 ```
 
 ## Integration
@@ -87,13 +96,14 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 Start with:
 
 - [Integration Guide](docs/integration-guide.md)
+- [Autonomous Evolution Guide](docs/autonomous-evolution.md)
 - [Architecture](docs/architecture.md)
 - [MVP Plan](docs/mvp-plan.md)
 - [Minimal Integration Example](examples/minimal_skill_integration.py)
+- [Autonomous Native Skill Example](examples/autonomous_native_skill.py)
 
 ## Relationship To Other Repositories
 
 - [Skill Evolution Protocol](https://github.com/d-wwei/skill-evolution-protocol): canonical contract and schemas
 - [Agent Skill Governor](https://github.com/d-wwei/agent-skill-governor): external authority for governed official promotion
 - [Remix](https://github.com/d-wwei/remix): independent reconstruction system that integrates `Skill-SE-Kit` when it needs self-evolution and governed handoff
-

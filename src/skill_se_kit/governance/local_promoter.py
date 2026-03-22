@@ -14,6 +14,8 @@ class LocalPromoter:
         governor_client,
         audit_logger=None,
         provenance_store=None,
+        knowledge_store=None,
+        contract_store=None,
     ):
         self.workspace = workspace
         self.protocol_adapter = protocol_adapter
@@ -21,6 +23,8 @@ class LocalPromoter:
         self.governor_client = governor_client
         self.audit_logger = audit_logger
         self.provenance_store = provenance_store
+        self.knowledge_store = knowledge_store
+        self.contract_store = contract_store
 
     def promote_candidate(self, proposal_id: str) -> Dict[str, Any]:
         if not self.governor_client.can_self_promote():
@@ -36,6 +40,10 @@ class LocalPromoter:
         candidate_manifest = load_json(self.workspace.root / manifest_artifact["ref"])
         self.protocol_adapter.validate_manifest(candidate_manifest)
         snapshot_id = self.version_store.create_snapshot(f"promote candidate {proposal_id}")
+        bundle = None
+        bundle_path = self.workspace.local_proposals_dir / f"{proposal_id}.bundle.json"
+        if bundle_path.exists():
+            bundle = load_json(bundle_path)
 
         candidate_manifest["governance"]["official_status"] = "official"
         candidate_manifest.setdefault("metadata", {})
@@ -43,6 +51,10 @@ class LocalPromoter:
 
         self.version_store.write_active_manifest(candidate_manifest)
         self.version_store.write_official_manifest(candidate_manifest)
+        if bundle and self.knowledge_store is not None:
+            self.knowledge_store.save_skill_bank(bundle.get("skill_bank", []))
+            self.knowledge_store.save_skill_bank(bundle.get("skill_bank", []), official=True)
+            self._apply_file_patches(bundle.get("file_patches", {}))
 
         receipt = {
             "promotion_id": generate_id("local-promotion"),
@@ -99,3 +111,9 @@ class LocalPromoter:
         if latest and latest["status"] == "pass":
             return latest
         return None
+
+    def _apply_file_patches(self, file_patches: Dict[str, str]) -> None:
+        for relative_path, content in (file_patches or {}).items():
+            path = self.workspace.root / relative_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")

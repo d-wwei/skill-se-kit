@@ -34,6 +34,26 @@ class SkillWorkspace:
         return self.root / "local" / "evaluations"
 
     @property
+    def local_rollouts_dir(self) -> Path:
+        return self.root / "local" / "rollouts"
+
+    @property
+    def local_experience_bank_dir(self) -> Path:
+        return self.root / "local" / "experience_bank"
+
+    @property
+    def local_skill_bank_dir(self) -> Path:
+        return self.root / "local" / "skill_bank"
+
+    @property
+    def local_skill_bank_path(self) -> Path:
+        return self.local_skill_bank_dir / "skills.json"
+
+    @property
+    def official_skill_bank_path(self) -> Path:
+        return self.root / "official" / "skill_bank.json"
+
+    @property
     def governed_overlays_dir(self) -> Path:
         return self.root / "governed" / "overlays"
 
@@ -56,6 +76,10 @@ class SkillWorkspace:
     @property
     def framework_policy_dir(self) -> Path:
         return self._metadata_root / "framework_policy"
+
+    @property
+    def skill_contract_path(self) -> Path:
+        return self._metadata_root / "skill_contract.json"
 
     @property
     def audit_summaries_dir(self) -> Path:
@@ -96,6 +120,9 @@ class SkillWorkspace:
             self.root / "local" / "experiences",
             self.root / "local" / "proposals",
             self.root / "local" / "evaluations",
+            self.root / "local" / "rollouts",
+            self.root / "local" / "experience_bank",
+            self.root / "local" / "skill_bank",
             self.root / "governed" / "overlays",
             self.root / "governed" / "decisions",
             self.root / "audit" / "summaries",
@@ -116,3 +143,7 @@ class SkillWorkspace:
             dump_json(self.manifest_path, manifest)
         if not self.official_manifest_path.exists():
             dump_json(self.official_manifest_path, manifest)
+        if not self.local_skill_bank_path.exists():
+            dump_json(self.local_skill_bank_path, {"skills": []})
+        if not self.official_skill_bank_path.exists():
+            dump_json(self.official_skill_bank_path, {"skills": []})

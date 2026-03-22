@@ -9,6 +9,11 @@
 
 ## 核心能力
 
+- 面向集成 skill 的自治双循环进化
+- 执行时从 skill bank 与 experience bank 检索知识
+- 从交互反馈中自动提炼经验
+- `add / merge / discard` 的 skill 管理
+- 带回归门禁的 candidate rewrite bundle 与本地推广
 - experience 记录
 - proposal 生成
 - overlay 应用
@@ -66,6 +71,9 @@ python3 -m unittest discover -s tests -p 'test_*.py'
     proposals/
     overlays/
     evaluations/
+    rollouts/
+    experience_bank/
+    skill_bank/
   governed/
     decisions/
     overlays/
@@ -79,6 +87,7 @@ python3 -m unittest discover -s tests -p 'test_*.py'
   .skill_se_kit/
     snapshots/
     framework_policy/
+    skill_contract.json
 ```
 
 ## 集成入口
@@ -86,13 +95,14 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 建议从这些文档开始：
 
 - [集成指南](docs/integration-guide.md)
+- [自治进化说明](docs/autonomous-evolution.md)
 - [架构说明](docs/architecture.md)
 - [MVP 计划](docs/mvp-plan.md)
 - [最小集成示例](examples/minimal_skill_integration.py)
+- [自治 skill 示例](examples/autonomous_native_skill.py)
 
 ## 与其他仓库的关系
 
 - [Skill Evolution Protocol](https://github.com/d-wwei/skill-evolution-protocol)：协议与 schema 来源
 - [Agent Skill Governor](https://github.com/d-wwei/agent-skill-governor)：在 governed 模式下负责 official promotion 的外部治理层
 - [Remix](https://github.com/d-wwei/remix)：独立的重构系统，在需要自我进化与 governed handoff 时集成 `Skill-SE-Kit`
-

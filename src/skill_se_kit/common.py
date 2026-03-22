@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Tuple
@@ -50,6 +51,11 @@ def dump_json(path: Path, payload: Dict[str, Any]) -> None:
 def parse_semver(version: str) -> Tuple[int, int, int]:
     major, minor, patch = version.split(".")
     return int(major), int(minor), int(patch)
+
+
+def bump_patch_version(version: str) -> str:
+    major, minor, patch = parse_semver(version)
+    return f"{major}.{minor}.{patch + 1}"
 
 
 def same_major(left: str, right: str) -> bool:
@@ -136,3 +142,27 @@ def list_json_files(directory: Path) -> Iterable[Path]:
     if not directory.exists():
         return []
     return sorted(path for path in directory.iterdir() if path.is_file() and path.suffix == ".json")
+
+
+def normalize_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip()).strip()
+
+
+def tokenize_text(value: Any) -> List[str]:
+    return [token for token in re.findall(r"[A-Za-z0-9_]+", normalize_text(value).lower()) if token]
+
+
+def jaccard_similarity(left: Any, right: Any) -> float:
+    left_tokens = set(tokenize_text(left))
+    right_tokens = set(tokenize_text(right))
+    if not left_tokens or not right_tokens:
+        return 0.0
+    return len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
+
+
+def ensure_list(value: Any) -> List[Any]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
