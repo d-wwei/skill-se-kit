@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from skill_se_kit.audit.logger import AuditLogger
 from skill_se_kit.feedback.extractor import AutoFeedbackExtractor
@@ -23,6 +23,9 @@ from skill_se_kit.storage.skill_contract_store import SkillContractStore
 from skill_se_kit.storage.version_store import VersionStore
 from skill_se_kit.storage.workspace import SkillWorkspace
 from skill_se_kit.verification.hooks import VerificationHookRegistry
+
+if TYPE_CHECKING:
+    from skill_se_kit.intelligence.backend import IntelligenceBackend
 
 
 class SkillRuntime:
@@ -261,6 +264,13 @@ class SkillRuntime:
 
     def register_rewriter(self, rewriter) -> None:
         self._rewriter = rewriter
+
+    def register_intelligence_backend(self, backend: "IntelligenceBackend") -> None:
+        """Set the intelligence backend for semantic retrieval, feedback extraction, and skill decisions."""
+        self._intelligence_backend = backend
+        self.knowledge_store.set_intelligence_backend(backend)
+        self.feedback_extractor.set_intelligence_backend(backend)
+        self.autonomous_engine.set_intelligence_backend(backend)
 
     def register_repair_adapter(self, name: str, adapter) -> None:
         self.repair_planner.register_adapter(name, adapter)

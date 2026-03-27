@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from skill_se_kit.common import (
     bump_patch_version,
@@ -10,6 +10,12 @@ from skill_se_kit.common import (
     tokenize_text,
     utc_now_iso,
 )
+
+if TYPE_CHECKING:
+    from skill_se_kit.intelligence.backend import IntelligenceBackend
+
+# Number of bullets in a skill before auto-synthesis is triggered.
+_AUTO_SYNTHESIS_THRESHOLD = 15
 
 
 class AutonomousEvolutionEngine:
@@ -26,6 +32,7 @@ class AutonomousEvolutionEngine:
         contract_store=None,
         repair_planner=None,
         regression_runner=None,
+        intelligence_backend: "IntelligenceBackend | None" = None,
     ):
         self.workspace = workspace
         self.version_store = version_store
@@ -38,6 +45,10 @@ class AutonomousEvolutionEngine:
         self.contract_store = contract_store
         self.repair_planner = repair_planner
         self.regression_runner = regression_runner
+        self._backend: IntelligenceBackend | None = intelligence_backend
+
+    def set_intelligence_backend(self, backend: "IntelligenceBackend") -> None:
+        self._backend = backend
 
     def execute(self, input: Dict[str, Any], context: Optional[Dict[str, Any]], executor) -> Dict[str, Any]:
         task_signature = self._task_signature(input, context)
@@ -280,6 +291,77 @@ class AutonomousEvolutionEngine:
 
     def _decide_skill_update(self, experience: Dict[str, Any]) -> tuple[Dict[str, Any], List[Dict[str, Any]]]:
         skill_bank = self.knowledge_store.load_skill_bank()
+
+        # Delegate to intelligence backend when available.
+        if self._backend is not None:
+            return self._decide_via_backend(experience, skill_bank)
+
+        # Fallback: original Jaccard-threshold logic.
+        return self._decide_local(experience, skill_bank)
+
+    def _decide_via_backend(
+        self, experience: Dict[str, Any], skill_bank: List[Dict[str, Any]]
+    ) -> tuple[Dict[str, Any], List[Dict[str, Any]]]:
+        decision = self._backend.decide_update(experience=experience, skill_bank=skill_bank)  # type: ignore[union-attr]
+
+        if decision.action == "discard":
+            return (decision.to_dict(), skill_bank)
+
+        if decision.action == "merge" and decision.target_skill_id:
+            updated = []
+            for skill in skill_bank:
+                if skill["skill_entry_id"] != decision.target_skill_id:
+                    updated.append(skill)
+                    continue
+                merged = dict(skill)
+                merged["version"] = bump_patch_version(skill["version"])
+                merged["content"] = decision.synthesized_content or self._merge_skill_content(skill["content"], experience)
+                if decision.synthesized_keywords:
+                    merged["keywords"] = decision.synthesized_keywords
+                merged["updated_at"] = utc_now_iso()
+                merged["source_experience_ids"] = list(skill.get("source_experience_ids", [])) + [experience["experience_id"]]
+                updated.append(merged)
+                # Auto-synthesize if content grew large.
+                self._maybe_synthesize(merged)
+            return (decision.to_dict(), updated)
+
+        if decision.action == "supersede" and decision.target_skill_id:
+            updated = []
+            for skill in skill_bank:
+                if skill["skill_entry_id"] != decision.target_skill_id:
+                    updated.append(skill)
+                    continue
+                replaced = dict(skill)
+                replaced["version"] = bump_patch_version(skill["version"])
+                replaced["content"] = decision.synthesized_content
+                if decision.synthesized_title:
+                    replaced["title"] = decision.synthesized_title
+                if decision.synthesized_keywords:
+                    replaced["keywords"] = decision.synthesized_keywords
+                replaced["updated_at"] = utc_now_iso()
+                replaced["source_experience_ids"] = list(skill.get("source_experience_ids", [])) + [experience["experience_id"]]
+                updated.append(replaced)
+            return (decision.to_dict(), updated)
+
+        # action == "add" (or fallback)
+        new_skill = {
+            "skill_entry_id": generate_id("skill"),
+            "title": decision.synthesized_title or self._title_from_experience(experience),
+            "content": decision.synthesized_content or self._new_skill_content(experience),
+            "version": "0.1.0",
+            "task_signature": experience["task_signature"],
+            "keywords": decision.synthesized_keywords or tokenize_text(experience["lesson"])[:8],
+            "source_experience_ids": [experience["experience_id"]],
+            "updated_at": utc_now_iso(),
+        }
+        result = decision.to_dict()
+        result["skill_entry_id"] = new_skill["skill_entry_id"]
+        return (result, skill_bank + [new_skill])
+
+    def _decide_local(
+        self, experience: Dict[str, Any], skill_bank: List[Dict[str, Any]]
+    ) -> tuple[Dict[str, Any], List[Dict[str, Any]]]:
+        """Original Jaccard-threshold decision logic (zero-dependency fallback)."""
         lesson = experience["lesson"]
         if self._should_discard(experience):
             return (
@@ -340,6 +422,20 @@ class AutonomousEvolutionEngine:
             },
             skill_bank + [new_skill],
         )
+
+    def _maybe_synthesize(self, skill: Dict[str, Any]) -> None:
+        """Trigger synthesis if a skill's content has grown beyond the threshold."""
+        if self._backend is None:
+            return
+        content = skill.get("content", "")
+        bullet_count = sum(1 for line in content.splitlines() if line.strip().startswith("- "))
+        if bullet_count >= _AUTO_SYNTHESIS_THRESHOLD:
+            result = self._backend.synthesize_skill(skill=skill)
+            skill["content"] = result.content
+            if result.title:
+                skill["title"] = result.title
+            if result.keywords:
+                skill["keywords"] = result.keywords
 
     @staticmethod
     def _should_discard(experience: Dict[str, Any]) -> bool:

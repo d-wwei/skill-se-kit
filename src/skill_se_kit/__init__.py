@@ -1,4 +1,11 @@
-__all__ = ["EasyIntegrator", "SkillRuntime", "initialize_auto_integration"]
+__all__ = [
+    "EasyIntegrator",
+    "IntelligenceBackend",
+    "LLMBackend",
+    "LocalBackend",
+    "SkillRuntime",
+    "initialize_auto_integration",
+]
 
 
 def __getattr__(name: str):
@@ -14,4 +21,16 @@ def __getattr__(name: str):
         from skill_se_kit.integration.auto_bootstrap import initialize_auto_integration
 
         return initialize_auto_integration
+    if name == "IntelligenceBackend":
+        from skill_se_kit.intelligence.backend import IntelligenceBackend
+
+        return IntelligenceBackend
+    if name == "LocalBackend":
+        from skill_se_kit.intelligence.local_backend import LocalBackend
+
+        return LocalBackend
+    if name == "LLMBackend":
+        from skill_se_kit.intelligence.llm_backend import LLMBackend
+
+        return LLMBackend
     raise AttributeError(name)

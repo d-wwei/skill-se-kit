@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from skill_se_kit.common import ensure_list, normalize_text
+
+if TYPE_CHECKING:
+    from skill_se_kit.intelligence.backend import IntelligenceBackend
 
 
 class AutoFeedbackExtractor:
@@ -41,6 +44,12 @@ class AutoFeedbackExtractor:
         "超时",
     ]
 
+    def __init__(self, intelligence_backend: "IntelligenceBackend | None" = None):
+        self._backend = intelligence_backend
+
+    def set_intelligence_backend(self, backend: "IntelligenceBackend") -> None:
+        self._backend = backend
+
     def extract(
         self,
         *,
@@ -52,6 +61,14 @@ class AutoFeedbackExtractor:
         if explicit_feedback is not None:
             return self._normalize_explicit(explicit_feedback)
 
+        # Delegate to intelligence backend when available.
+        if self._backend is not None:
+            fb = self._backend.extract_feedback(
+                user_input=input, context=context, result=result,
+            )
+            return fb.to_dict()
+
+        # Fallback: keyword-based extraction.
         user_text = self._collect_user_text(input, context)
         lesson = self._extract_preference_lesson(user_text)
         outcome = self._infer_outcome(result)

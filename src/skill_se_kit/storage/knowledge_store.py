@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from skill_se_kit.common import (
     dump_json,
@@ -13,15 +13,22 @@ from skill_se_kit.common import (
     utc_now_iso,
 )
 
+if TYPE_CHECKING:
+    from skill_se_kit.intelligence.backend import IntelligenceBackend
+
 
 class KnowledgeStore:
-    def __init__(self, workspace):
+    def __init__(self, workspace, intelligence_backend: "IntelligenceBackend | None" = None):
         self.workspace = workspace
+        self._backend = intelligence_backend
         self.workspace.ensure_layout()
         if not self.workspace.local_skill_bank_path.exists():
             dump_json(self.workspace.local_skill_bank_path, {"skills": []})
         if not self.workspace.official_skill_bank_path.exists():
             dump_json(self.workspace.official_skill_bank_path, {"skills": []})
+
+    def set_intelligence_backend(self, backend: "IntelligenceBackend") -> None:
+        self._backend = backend
 
     def load_skill_bank(self, *, official: bool = False) -> List[Dict[str, Any]]:
         path = self.workspace.official_skill_bank_path if official else self.workspace.local_skill_bank_path
@@ -72,6 +79,16 @@ class KnowledgeStore:
         active_skills = list(skill_bank if skill_bank is not None else self.load_skill_bank())
         experiences = list(experience_bank if experience_bank is not None else self.load_experience_bank())
 
+        if self._backend is not None:
+            result = self._backend.retrieve(
+                query_text=query_text,
+                skills=active_skills,
+                experiences=experiences,
+                top_k=top_k,
+            )
+            return result.to_dict()
+
+        # Fallback: inline Jaccard (kept for zero-dependency compatibility).
         scored_skills = []
         for skill in active_skills:
             score = jaccard_similarity(
