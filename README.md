@@ -2,11 +2,73 @@
 
 [中文说明](README.zh-CN.md)
 
-`Skill-SE-Kit` is a protocol-compatible runtime substrate for self-evolving, audit-ready, governable skills.
-It provides the shared runtime primitives needed for standalone skill evolution and governed promotion workflows.
+`Skill-SE-Kit` is a protocol-compatible runtime substrate for self-evolving,
+audit-ready, governable skills. It provides the shared runtime primitives
+needed for standalone skill evolution and governed promotion workflows.
 
 The public product and package name is `Skill-SE-Kit`.
 The internal Python module path is `skill_se_kit`.
+
+## Research Origins
+
+This project is a production-grade engineering implementation inspired by two
+recent academic papers that independently converged on the same insight:
+
+> **Static skills are just fancy prompts. Skills that self-evolve are the real
+> digital assets.**
+
+### AutoSkill — Experience-Driven Lifelong Learning via Skill Self-Evolution
+
+- **Authors**: ECNU ICALK Lab & Shanghai AI Laboratory
+- **Paper**: [arXiv:2603.01145](https://arxiv.org/abs/2603.01145)
+- **Code**: [ECNU-ICALK/AutoSkill](https://github.com/ECNU-ICALK/AutoSkill)
+
+AutoSkill proposed that every user interaction should make the system smarter.
+Its **dual-loop architecture** runs task execution and skill evolution in
+parallel: the left loop retrieves relevant skills and generates responses,
+while the right loop extracts new skills from interactions and decides whether
+to add, merge, or discard them.
+
+### XSKILL — Continual Learning from Experience and Skills in Multimodal Agents
+
+- **Authors**: HKUST, Zhejiang University & HUST
+- **Paper**: [arXiv:2603.12056](https://arxiv.org/abs/2603.12056)
+- **Code**: [XSkill-Agent/XSkill](https://github.com/XSkill-Agent/XSkill)
+- **Website**: [xskill-agent.github.io](https://xskill-agent.github.io/xskill_page/)
+
+XSKILL addressed how skills adapt to complex, changing environments. It
+introduced a **dual-stream knowledge system** — a Skill Library (structured
+procedures, like a driving manual) and an Experience Bank (contextual action
+hints, like driving intuition) — alongside **cross-rollout critique** that
+compares multiple execution attempts to extract causal lessons.
+
+### What Skill-SE-Kit Borrows
+
+| Concept | Origin | Implementation in Skill-SE-Kit |
+|---------|--------|-------------------------------|
+| Dual-loop architecture | AutoSkill | `run_integrated_skill()` orchestrates execution + learning in one call |
+| Versioned Skill Bank | AutoSkill + XSKILL | `local/skill_bank/skills.json` with `bump_patch_version()` on each update |
+| Experience Bank | XSKILL | `local/experience_bank/` — contextual experience items indexed for retrieval |
+| Add / Merge / Discard decisions | Both | `UpdateDecision` with actions: `add`, `merge`, `discard`, `supersede` |
+| Skill retrieval at execution time | AutoSkill | `retrieve_knowledge()` injects `skill_guidance` into executor context |
+| Cross-Rollout Critique | XSKILL | Compares recent rollouts for success/failure patterns, adds critique to experiences |
+| Hierarchical Consolidation | XSKILL | `synthesize_skill()` auto-compresses skills when bullet count exceeds threshold |
+| Confidence-based filtering | Both (implicit) | `min_feedback_confidence` gates low-quality signals from mutating the skill bank |
+
+### What Skill-SE-Kit Adds Beyond the Papers
+
+The papers describe research frameworks. Skill-SE-Kit is an engineering
+implementation that adds production concerns:
+
+- **Protocol compatibility** — all artifacts conform to [Skill Evolution Protocol](https://github.com/d-wwei/skill-evolution-protocol) schemas
+- **Governed mode** — governor handshake, external promotion authority, governed overlay ingestion
+- **Audit and provenance** — first-class decision logs, evidence artifacts, source attribution
+- **Automatic code repair** — built-in repair adapters (`replace_text`, `insert_after`, `python_dict_set`, etc.) for landing real code fixes, not just learning rules
+- **Agent-driven integration** — LLM agent hosts use CLI for storage while providing their own intelligence, requiring zero Python on the host side
+- **Pluggable intelligence backends** — swap between local Jaccard engine and LLM-powered semantic reasoning via `IntelligenceBackend`
+- **Multilingual support** — preference detection and retrieval tokens in both English and Chinese
+- **Regression-gated promotion** — candidates are promoted only after passing evaluation cases and verification hooks
+- **Rollback and snapshots** — operational recovery via versioned snapshots
 
 ## Core Capabilities
 
@@ -26,11 +88,6 @@ The internal Python module path is `skill_se_kit`.
 - interaction-to-experience extraction
 - add/merge/discard skill management
 - candidate rewrite bundles with regression-gated promotion
-- experience recording
-- proposal generation
-- overlay application
-- local evaluation
-- local promotion in `standalone`
 - governor handshake and governed-mode enforcement
 - audit artifact generation
 - provenance recording
@@ -206,3 +263,26 @@ using native repair mode instead of a post-execution logging setup.
 - [Skill Evolution Protocol](https://github.com/d-wwei/skill-evolution-protocol): canonical contract and schemas
 - [Agent Skill Governor](https://github.com/d-wwei/agent-skill-governor): external authority for governed official promotion
 - [Remix](https://github.com/d-wwei/remix): independent reconstruction system that integrates `Skill-SE-Kit` when it needs self-evolution and governed handoff
+
+## Acknowledgments
+
+Skill-SE-Kit stands on the shoulders of two pioneering research efforts in
+skill self-evolution for AI agents:
+
+- **AutoSkill** by ECNU ICALK Lab & Shanghai AI Laboratory
+  ([arXiv:2603.01145](https://arxiv.org/abs/2603.01145),
+  [GitHub](https://github.com/ECNU-ICALK/AutoSkill)) — for establishing the
+  dual-loop paradigm of concurrent task execution and skill evolution, and the
+  add/merge/discard skill management framework.
+
+- **XSKILL** by HKUST, Zhejiang University & HUST
+  ([arXiv:2603.12056](https://arxiv.org/abs/2603.12056),
+  [GitHub](https://github.com/XSkill-Agent/XSkill),
+  [Project Page](https://xskill-agent.github.io/xskill_page/)) — for the
+  dual-stream Skill Library + Experience Bank architecture, cross-rollout
+  critique methodology, and hierarchical skill consolidation.
+
+These works demonstrated that self-evolving skills are not just theoretically
+appealing but practically achievable. Skill-SE-Kit translates their research
+insights into a production-grade, protocol-compatible runtime that any agent
+system can integrate.
