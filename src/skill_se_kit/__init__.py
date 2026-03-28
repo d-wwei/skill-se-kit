@@ -1,9 +1,12 @@
+__version__ = "0.2.0"
+
 __all__ = [
     "EasyIntegrator",
     "IntelligenceBackend",
     "LLMBackend",
     "LocalBackend",
     "SkillRuntime",
+    "__version__",
     "initialize_auto_integration",
 ]
 

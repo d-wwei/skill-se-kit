@@ -12,7 +12,45 @@ The intended result is:
 - `Skill-SE-Kit` owns evolution, governance, audit, provenance, and rollback plumbing
 - protocol compatibility remains centralized and testable
 
-Before integrating a real skill, also read:
+## Quick Decision: Which Integration Path?
+
+Start here. Pick based on your host system type:
+
+```text
+What is your host system?
+│
+├─ LLM Agent (Claude, GPT, agentic framework)
+│   │
+│   ├─ Want zero-code integration?
+│   │   └─ YES → Agent-Driven Mode (recommended)
+│   │          CLI for storage + agent provides all intelligence
+│   │          See: integration-modes.md § Agent-Driven Mode
+│   │
+│   └─ Want deep SDK customization (custom hooks, repair adapters)?
+│       └─ Python API + register_intelligence_backend()
+│          See: § Autonomous Skill Mode below
+│
+├─ Automated pipeline (CI/CD, scripts, non-agent code)
+│   │
+│   ├─ Only record lessons, no code changes?
+│   │   └─ Learning-Only Mode (CLI or EasyIntegrator)
+│   │
+│   ├─ Want automatic code repair?
+│   │   └─ Native Repair Mode (Python API, executor required)
+│   │
+│   └─ Multiple scripts/tools to evolve?
+│       └─ Multi-Script Dispatcher Mode
+│
+└─ CLI manual mode → for human oversight, debugging, auditing
+   Not a host mode. Use skill-se-kit report / rollback.
+```
+
+Note on CLI intelligence: the CLI uses a local Jaccard-similarity backend
+for retrieval and feedback extraction. This is sufficient for keyword-level
+matching. For semantic-level intelligence, either use the Agent-Driven mode
+(the agent is the LLM) or register an LLM backend via the Python API.
+
+For detailed mode definitions, also read:
 
 - [Integration Modes](integration-modes.md)
 

@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/skill-se-kit/schemas/run-result.schema.json",
+  "title": "Skill-SE-Kit Run Result",
+  "description": "Return value of skill-se-kit run (CLI) or runtime.run_integrated_skill() (Python API).",
+  "type": "object",
+  "required": ["kit_active", "runtime_mode"],
+  "properties": {
+    "kit_active": {
+      "type": "boolean",
+      "description": "Whether the kit was active for this execution. False when runtime_mode is 'off'."
+    },
+    "runtime_mode": {
+      "type": "string",
+      "enum": ["off", "manual", "auto"],
+      "description": "The resolved runtime mode for this execution."
+    },
+    "execution_id": {
+      "type": "string",
+      "description": "Unique identifier for this execution. Present when kit_active is true."
+    },
+    "task_signature": {
+      "type": "string",
+      "description": "Normalized task signature used for retrieval and matching."
+    },
+    "retrieved": {
+      "type": "object",
+      "description": "Skills and experiences retrieved for this execution context.",
+      "properties": {
+        "skills": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/skill_entry" }
+        },
+        "experiences": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "description": "The executor's raw return value. Structure depends on the executor implementation."
+    },
+    "autonomous_cycle": {
+      "type": ["object", "null"],
+      "description": "Present when runtime_mode is 'auto' and feedback was available. Contains the learning cycle outcome.",
+      "properties": {
+        "execution_id": { "type": "string" },
+        "experience": { "type": "object" },
+        "decision": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["add", "merge", "discard", "supersede", "skip"],
+              "description": "What the engine decided to do with the feedback."
+            },
+            "summary": { "type": "string" },
+            "skill_entry_id": { "type": "string" },
+            "reason": { "type": "string" },
+            "reasoning": { "type": "string" }
+          },
+          "required": ["action", "summary"]
+        },
+        "proposal": {
+          "type": ["object", "null"],
+          "description": "The generated proposal, or null if decision was discard/skip."
+        },
+        "evaluation": {
+          "type": ["object", "null"],
+          "description": "Evaluation receipt, or null if no proposal was generated."
+        },
+        "promotion": {
+          "type": ["object", "null"],
+          "description": "Promotion result, or null if evaluation failed or no proposal."
+        }
+      }
+    },
+    "evolution_report": {
+      "type": ["object", "null"],
+      "description": "Human-readable evolution report, present when human_reports is enabled."
+    }
+  },
+  "$defs": {
+    "skill_entry": {
+      "type": "object",
+      "description": "A single entry in the skill bank (local/skill_bank/skills.json).",
+      "required": ["skill_entry_id", "title", "content", "version"],
+      "properties": {
+        "skill_entry_id": {
+          "type": "string",
+          "description": "Unique identifier for this skill entry."
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable title summarizing the skill."
+        },
+        "content": {
+          "type": "string",
+          "description": "The skill content, typically a bulleted list of learned guidelines."
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic version of this skill entry, bumped on each update."
+        },
+        "task_signature": {
+          "type": "string",
+          "description": "Normalized task signature this skill was learned from."
+        },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Keywords for retrieval matching."
+        },
+        "source_experience_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Experience IDs that contributed to this skill."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of last update."
+        }
+      }
+    }
+  }
+}

@@ -32,6 +32,7 @@ class SkillRuntime:
     @classmethod
     def from_auto_integration(cls, skill_root: str | Path, protocol_root: str | Path | None = None) -> "SkillRuntime":
         config = load_auto_integration_config(skill_root)
+        cls._check_sdk_compat(config)
         runtime = cls(
             skill_root=skill_root,
             protocol_root=protocol_root or config["protocol_root"],
@@ -49,6 +50,27 @@ class SkillRuntime:
             metadata={"auto_integration": True, "executor": config.get("executor")},
         )
         return runtime
+
+    @staticmethod
+    def _check_sdk_compat(config: Dict[str, Any]) -> None:
+        """Warn when the running SDK major version differs from the init-time version."""
+        init_version = config.get("sdk_version")
+        if not init_version:
+            return
+        from skill_se_kit import __version__ as current_version
+
+        init_major = init_version.split(".")[0]
+        current_major = current_version.split(".")[0]
+        if init_major != current_major:
+            import warnings
+
+            warnings.warn(
+                f"Skill workspace was initialized with skill-se-kit {init_version} "
+                f"but the current version is {current_version}. "
+                f"Major version mismatch may cause incompatibilities. "
+                f"Run 'skill-se-kit init' again to re-initialize.",
+                stacklevel=2,
+            )
 
     def __init__(self, *, skill_root: str | Path, protocol_root: str | Path):
         self.workspace = SkillWorkspace(skill_root)

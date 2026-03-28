@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/skill-se-kit/schemas/feedback.schema.json",
+  "title": "Skill-SE-Kit Feedback",
+  "description": "Structured feedback passed to skill-se-kit run --feedback-json or runtime.run_integrated_skill(feedback=...).",
+  "type": "object",
+  "required": ["status", "lesson", "source"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["positive", "negative"],
+      "description": "Whether the execution outcome was positive or negative."
+    },
+    "lesson": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A reusable insight extracted from this execution. Should be specific enough to guide future behavior."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["explicit", "user_input", "execution_result", "default"],
+      "description": "Origin of this feedback. Use 'explicit' for agent-constructed feedback, 'user_input' for user-originated signals, 'execution_result' for auto-extracted feedback."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": 1.0,
+      "description": "Confidence in this feedback. Below min_feedback_confidence (default 0.35), the experience is stored but skipped for skill-bank mutation."
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "Optional detailed reasoning behind the lesson."
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "status": "negative",
+      "lesson": "When clicking elements in shadow DOM, use page.evaluate() to pierce the shadow root instead of direct CSS selectors.",
+      "source": "explicit",
+      "confidence": 0.9,
+      "reasoning": "Direct querySelector failed on 3 consecutive attempts; switching to evaluate() with shadow root traversal succeeded immediately."
+    },
+    {
+      "status": "positive",
+      "lesson": "For paginated API responses, always check the 'next' link header before assuming all results are returned.",
+      "source": "explicit",
+      "confidence": 0.75
+    }
+  ]
+}

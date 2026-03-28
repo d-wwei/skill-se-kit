@@ -11,9 +11,81 @@ evaluation, and promote working fixes.
 This document defines the supported integration modes and the minimum contract
 for each mode so future skills do not accidentally integrate in the wrong mode.
 
-## The Three Modes
+## The Four Modes
 
-### 1. Learning-Only Mode
+### 1. Agent-Driven Mode
+
+Use this mode when the host system is an LLM agent (Claude, GPT, or any
+agentic framework) and the goal is zero-code integration with maximum
+semantic quality.
+
+Core idea: the agent itself is the intelligence layer. It has full
+execution context, can reason about outcomes, and can construct
+high-quality structured feedback. Skill-SE-Kit handles structured storage,
+protocol compliance, versioning, and promotion gating.
+
+This is the recommended mode for LLM agent hosts.
+
+Typical setup:
+
+- agent calls `skill-se-kit init` once to bootstrap the workspace
+- after each task execution, agent constructs a feedback JSON from its own
+  reasoning (not from the SDK's built-in extractor)
+- agent calls `skill-se-kit run --input-json '...' --feedback-json '...'`
+  with the structured feedback
+- before the next task, agent reads `local/skill_bank/skills.json` and
+  injects relevant skills into its own system prompt or context
+- agent uses `skill-se-kit report` to review evolution history
+- agent uses `skill-se-kit rollback` if a promoted skill degrades performance
+
+Why this works better than registering an LLM backend:
+
+- the agent has complete execution context (conversation history, tool
+  outputs, page state, user intent) that an SDK-internal LLM call cannot
+  access
+- feedback quality is higher because the agent reasons with full context
+  instead of a fixed extraction prompt
+- no extra LLM API calls beyond what the agent already makes
+- zero Python code needed on the host side
+
+Minimum contract:
+
+- `skill-se-kit` installed and accessible as a CLI command
+- agent constructs feedback in the expected JSON format (see
+  [Feedback JSON Reference](#feedback-json-reference) below)
+- `managed_files` set appropriately for the desired learning or repair scope
+- agent reads `local/skill_bank/skills.json` to close the learning loop
+
+Result:
+
+- the kit stores structured experiences and skills
+- the kit evaluates and promotes based on its protocol
+- the agent provides all semantic intelligence
+- upgrade path: `pip install --upgrade skill-se-kit`, zero code changes
+
+Agent integration pattern:
+
+```text
+Agent (LLM)
+  │
+  ├─ Execute task (browse, code, search, etc.)
+  │
+  ├─ Reflect on outcome → construct feedback JSON
+  │     {
+  │       "status": "positive" or "negative",
+  │       "lesson": "Reusable insight from this execution",
+  │       "source": "explicit",
+  │       "confidence": 0.85
+  │     }
+  │
+  ├─ skill-se-kit run --input-json '...' --feedback-json '...'
+  │     → SDK stores experience, evaluates, promotes if passing
+  │
+  └─ Next task: read local/skill_bank/skills.json
+        → inject relevant skills into agent context
+```
+
+### 2. Learning-Only Mode
 
 Use this mode when the goal is to:
 
@@ -42,7 +114,7 @@ Result:
 - the kit may promote new lessons
 - the kit does not fix product code
 
-### 2. Native Repair Mode
+### 3. Native Repair Mode
 
 Use this mode when the goal is to automatically land real fixes or
 optimizations into code.
@@ -71,7 +143,7 @@ Result:
 - the kit reruns evaluation after repair
 - the kit may promote only after a repair passes
 
-### 3. Multi-Script Dispatcher Mode
+### 4. Multi-Script Dispatcher Mode
 
 Use this mode for skills whose real behavior lives across multiple scripts,
 tools, or entrypoints.
@@ -95,6 +167,37 @@ Result:
 - the kit evolves the real behavior layer
 - code repair is not trapped at `SKILL.md`
 - failures can be mapped to script-specific fixes
+
+## CLI Capability Boundary
+
+The CLI (`skill-se-kit init/run/report/rollback`) uses the local Jaccard-
+similarity backend for retrieval and feedback extraction. This is a zero-
+dependency keyword-matching engine that works without any LLM API calls.
+
+What the CLI can do:
+
+- bootstrap workspaces
+- run the full autonomous cycle (execute, learn, evaluate, promote)
+- keyword-level skill retrieval and feedback extraction
+- generate human-readable reports
+- rollback to snapshots
+
+What the CLI cannot do:
+
+- register a custom `IntelligenceBackend` (including `LLMBackend`)
+- register custom verification hooks
+- register custom repair adapters
+
+For semantic-level intelligence, you have two options:
+
+1. **Agent-Driven mode** (recommended for LLM agent hosts): the agent
+   constructs high-quality feedback itself and passes it via
+   `--feedback-json`. The CLI handles storage and protocol. No Python
+   code needed.
+
+2. **Python API**: call `runtime.register_intelligence_backend(LLMBackend(llm=...))`
+   for SDK-internal LLM-powered retrieval, extraction, and synthesis.
+   Requires Python integration code.
 
 ## Anti-Pattern: External Test Harness Plus CLI Logger
 
@@ -230,6 +333,58 @@ Recommended fields:
 
 The more precisely failures are mapped to files and actions, the more likely the
 kit can land working repairs instead of only storing lessons.
+
+## Feedback JSON Reference
+
+When providing explicit feedback via `--feedback-json`, use this structure:
+
+```json
+{
+  "status": "positive or negative (required)",
+  "lesson": "A reusable insight from this execution (required)",
+  "source": "explicit (required for agent-constructed feedback)",
+  "confidence": 0.85,
+  "reasoning": "Optional: why this lesson matters"
+}
+```
+
+Field definitions:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `status` | string | yes | `"positive"` or `"negative"` |
+| `lesson` | string | yes | The reusable guidance extracted from this execution |
+| `source` | string | yes | `"explicit"` for agent-constructed feedback, `"user_input"` for user-originated, `"execution_result"` for auto-extracted |
+| `confidence` | float | no | 0.0 to 1.0. Default: 1.0 for explicit feedback. Below `min_feedback_confidence` (default 0.35), the experience is stored but skipped for skill-bank mutation |
+| `reasoning` | string | no | Detailed reasoning behind the lesson |
+
+Common mistakes:
+
+- Using `sentiment` instead of `status` — the SDK expects `status`
+- Using `detail` instead of `lesson` — the SDK expects `lesson`
+- Omitting `source` — without `"explicit"`, the SDK may re-extract feedback
+  from the execution result, potentially overriding your higher-quality input
+
+## If You Want Agent-Driven Integration
+
+Required:
+
+- `skill-se-kit` CLI accessible to the agent host
+- agent constructs feedback in the format above
+- agent reads `local/skill_bank/skills.json` for skill injection
+
+Recommended:
+
+- set `run_mode` to `auto` for full autonomous cycle
+- provide `confidence` values to let the SDK gate low-quality signals
+- read `reports/evolution/latest.json` for structured evolution data
+- use `skill-se-kit rollback` when a promoted skill causes regressions
+
+Not required:
+
+- Python bridge or wrapper script
+- `register_intelligence_backend()` call
+- any Python code on the host side
 
 ## Integration Checklist
 

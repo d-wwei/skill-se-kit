@@ -143,8 +143,11 @@ def initialize_auto_integration(
     workspace.ensure_layout()
     executor = executor_spec or discover_executor_spec(skill_root)
     managed = managed_files or _discover_managed_files(skill_root, executor)
+    from skill_se_kit import __version__ as sdk_version
+
     payload = {
         "configured_at": utc_now_iso(),
+        "sdk_version": sdk_version,
         "skill_root": str(Path(skill_root).expanduser().resolve()),
         "protocol_root": str(Path(protocol_root).expanduser().resolve()),
         "runtime_mode": runtime_mode,

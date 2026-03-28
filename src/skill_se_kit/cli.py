@@ -38,9 +38,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     run_parser = subparsers.add_parser("run", help="Run a skill through the auto-integration wrapper.")
     run_parser.add_argument("--skill-root", default=".")
-    run_parser.add_argument("--input-json", required=True)
-    run_parser.add_argument("--context-json")
-    run_parser.add_argument("--feedback-json")
+    run_parser.add_argument("--input-json", required=True, help="Task input as JSON string or @path. Required.")
+    run_parser.add_argument("--context-json", help="Execution context as JSON string or @path.")
+    run_parser.add_argument(
+        "--feedback-json",
+        help='Explicit feedback as JSON string or @path. Expected fields: {"status": "positive|negative", "lesson": "...", "source": "explicit", "confidence": 0.0-1.0, "reasoning": "..."}. See schemas/feedback.schema.json.',
+    )
     run_parser.add_argument("--run-mode", choices=["off", "manual", "auto"])
     run_parser.add_argument("--auto-promote", dest="auto_promote", action="store_true", default=None)
     run_parser.add_argument("--no-auto-promote", dest="auto_promote", action="store_false")
