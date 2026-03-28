@@ -11,6 +11,8 @@ The internal Python module path is `skill_se_kit`.
 ## Core Capabilities
 
 - one-click easy integration for agents and skills
+- **agent-driven integration mode**: LLM agents use the CLI for structured storage while providing their own intelligence — zero Python code required on the host side
+- pluggable intelligence backends: built-in local Jaccard engine or bring-your-own LLM via `LLMBackend`
 - `skill-se-kit init` auto-bootstrap for near zero-touch onboarding
 - configurable run modes: `off`, `manual`, `auto`
 - automatic feedback extraction from user input and execution results
@@ -33,6 +35,7 @@ The internal Python module path is `skill_se_kit`.
 - audit artifact generation
 - provenance recording
 - verification hooks and promotion gating
+- SDK version compatibility check on workspace load
 
 ## Supported Protocol
 
@@ -53,20 +56,43 @@ skill-se-kit/
     storage/
     evolution/
     evaluation/
+    feedback/
     governance/
+    intelligence/
+    integration/
     provenance/
     protocol/
+    repair/
+    reporting/
     verification/
+  schemas/             # JSON Schemas for feedback input and run result output
   tests/
   examples/
   docs/
 ```
 
+## Integration Decision Tree
+
+```text
+What is your host system?
+├─ LLM Agent (Claude, GPT, agentic framework)
+│   ├─ Zero-code integration? → Agent-Driven Mode (recommended)
+│   │     CLI for storage + agent provides all intelligence
+│   └─ Deep SDK customization? → Python API + register_intelligence_backend()
+├─ Automated pipeline (CI/CD, scripts, non-agent code)
+│   ├─ Only record lessons? → Learning-Only Mode
+│   ├─ Automatic code repair? → Native Repair Mode
+│   └─ Multiple scripts/tools? → Multi-Script Dispatcher Mode
+└─ CLI manual mode → for human oversight, debugging, auditing
+```
+
+See [Integration Modes](docs/integration-modes.md) for details on each mode.
+
 ## Quick Start
 
 ```bash
 python3 -m pip install .
-python3 -m unittest discover -s tests -p 'test_*.py'
+python3 -m pytest tests/
 ```
 
 Bootstrap an existing skill workspace:
@@ -76,6 +102,14 @@ skill-se-kit init --skill-root /path/to/skill --protocol-root /path/to/skill-evo
 skill-se-kit run --skill-root /path/to/skill --input-json '{"task":"draft memo","user_input":"Always include a summary."}'
 skill-se-kit report --skill-root /path/to/skill
 skill-se-kit rollback --skill-root /path/to/skill --snapshot-id snapshot-xxxx
+```
+
+For agent-driven integration, pass structured feedback directly:
+
+```bash
+skill-se-kit run --skill-root /path/to/skill \
+  --input-json '{"task":"browse","url":"https://example.com"}' \
+  --feedback-json '{"status":"positive","lesson":"Use page.evaluate() to pierce shadow DOM","source":"explicit","confidence":0.9}'
 ```
 
 ## Foolproof Usage
@@ -146,16 +180,22 @@ Auto-feedback defaults:
 
 Start with:
 
-- [Integration Guide](docs/integration-guide.md)
-- [Integration Modes](docs/integration-modes.md)
+- [Integration Guide](docs/integration-guide.md) — decision tree, responsibility split, checklist
+- [Integration Modes](docs/integration-modes.md) — agent-driven, learning-only, native repair, multi-script dispatcher
 - [Autonomous Evolution Guide](docs/autonomous-evolution.md)
 - [Architecture](docs/architecture.md)
-- [MVP Plan](docs/mvp-plan.md)
-- [Minimal Integration Example](examples/minimal_skill_integration.py)
-- [Easy Mode Example](examples/easy_mode_skill.py)
-- [Autonomous Native Skill Example](examples/autonomous_native_skill.py)
-- [Autonomous Code Repair Example](examples/autonomous_code_repair.py)
-- `skill-se-kit init`, `skill-se-kit run`, `skill-se-kit report`
+
+Contract schemas:
+
+- [Feedback JSON Schema](schemas/feedback.schema.json) — input format for `--feedback-json`
+- [Run Result JSON Schema](schemas/run-result.schema.json) — output format of `skill-se-kit run`
+
+Examples:
+
+- [Minimal Integration](examples/minimal_skill_integration.py)
+- [Easy Mode](examples/easy_mode_skill.py)
+- [Autonomous Native Skill](examples/autonomous_native_skill.py)
+- [Autonomous Code Repair](examples/autonomous_code_repair.py)
 
 If you want the kit to repair code, not just learn rules, read
 [Integration Modes](docs/integration-modes.md) first and make sure you are
