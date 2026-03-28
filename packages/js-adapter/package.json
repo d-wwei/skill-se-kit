@@ -1,0 +1,33 @@
+{
+  "name": "@skill-se-kit/adapter",
+  "version": "0.2.0",
+  "description": "TypeScript/JavaScript client for Skill-SE-Kit HTTP sidecar",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "skill-se-kit",
+    "skill-evolution",
+    "agent",
+    "self-evolving"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/d-wwei/skill-se-kit",
+    "directory": "packages/js-adapter"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

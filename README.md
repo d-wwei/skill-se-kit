@@ -93,6 +93,8 @@ implementation that adds production concerns:
 - provenance recording
 - verification hooks and promotion gating
 - SDK version compatibility check on workspace load
+- **HTTP sidecar mode** (`skill-se-kit serve`) for cross-language integration with zero subprocess overhead
+- **official npm adapter** (`@skill-se-kit/adapter`) for TypeScript/JavaScript hosts
 
 ## Supported Protocol
 
@@ -123,6 +125,9 @@ skill-se-kit/
     reporting/
     verification/
   schemas/             # JSON Schemas for feedback input and run result output
+  packages/
+    js-adapter/        # @skill-se-kit/adapter npm package
+  build/               # PyInstaller spec for standalone binaries
   tests/
   examples/
   docs/
@@ -168,6 +173,43 @@ skill-se-kit run --skill-root /path/to/skill \
   --input-json '{"task":"browse","url":"https://example.com"}' \
   --feedback-json '{"status":"positive","lesson":"Use page.evaluate() to pierce shadow DOM","source":"explicit","confidence":0.9}'
 ```
+
+## HTTP Sidecar Mode
+
+For cross-language integrations (TypeScript, Go, etc.), run a persistent HTTP
+server instead of spawning CLI subprocesses:
+
+```bash
+skill-se-kit serve --skill-root /path/to/skill --port 9780
+```
+
+Then call from any language:
+
+```bash
+# Execute + learn
+curl -X POST http://localhost:9780/run \
+  -H 'Content-Type: application/json' \
+  -d '{"input":{"task":"browse"},"feedback":{"status":"positive","lesson":"...","source":"explicit"}}'
+
+# Read skill bank
+curl http://localhost:9780/skills
+```
+
+For TypeScript/JavaScript, use the official adapter:
+
+```bash
+npm install @skill-se-kit/adapter
+```
+
+```typescript
+import { SkillSEKit } from '@skill-se-kit/adapter';
+
+const kit = new SkillSEKit({ port: 9780 });
+const result = await kit.run({ task: 'browse' }, { status: 'positive', lesson: '...', source: 'explicit' });
+const skills = await kit.getSkills();
+```
+
+See [packages/js-adapter/README.md](packages/js-adapter/README.md) for full API documentation.
 
 ## Foolproof Usage
 

@@ -30,6 +30,14 @@ What is your host system?
 │       └─ Python API + register_intelligence_backend()
 │          See: § Autonomous Skill Mode below
 │
+├─ Cross-language host (TypeScript, Go, etc.)
+│   │
+│   └─ Use HTTP sidecar mode:
+│       1. skill-se-kit serve --port 9780
+│       2. Call HTTP endpoints (POST /run, GET /skills, etc.)
+│       3. For TypeScript: npm install @skill-se-kit/adapter
+│       See: packages/js-adapter/README.md
+│
 ├─ Automated pipeline (CI/CD, scripts, non-agent code)
 │   │
 │   ├─ Only record lessons, no code changes?

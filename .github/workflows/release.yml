@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - run: pytest tests/ -x -q
+
+  build-binary:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - os: macos-14
+            artifact: skill-se-kit-macos-arm64
+          - os: macos-13
+            artifact: skill-se-kit-macos-x64
+          - os: ubuntu-latest
+            artifact: skill-se-kit-linux-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e . pyinstaller
+      - run: pyinstaller packaging/pyinstaller.spec
+      - run: mv dist/skill-se-kit dist/${{ matrix.artifact }}
+      - run: chmod +x dist/${{ matrix.artifact }}
+      - run: dist/${{ matrix.artifact }} --help
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
+
+  release:
+    needs: build-binary
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true

@@ -57,6 +57,15 @@ def build_parser() -> argparse.ArgumentParser:
     rollback_parser.add_argument("--skill-root", default=".")
     rollback_parser.add_argument("--snapshot-id", required=True)
     rollback_parser.set_defaults(handler=_handle_rollback)
+
+    serve_parser = subparsers.add_parser(
+        "serve",
+        help="Start an HTTP sidecar server for cross-language integration.",
+    )
+    serve_parser.add_argument("--skill-root", default=".")
+    serve_parser.add_argument("--host", default="127.0.0.1", help="Bind address (default: 127.0.0.1)")
+    serve_parser.add_argument("--port", type=int, default=9780, help="Port number (default: 9780)")
+    serve_parser.set_defaults(handler=_handle_serve)
     return parser
 
 
@@ -130,6 +139,14 @@ def _handle_report(args) -> int:
     runtime = SkillRuntime.from_auto_integration(args.skill_root)
     summary = runtime.get_latest_evolution_summary()
     print(normalize_text(summary) or "No evolution report is available yet.")
+    return 0
+
+
+def _handle_serve(args) -> int:
+    runtime = SkillRuntime.from_auto_integration(args.skill_root)
+    from skill_se_kit.serve import serve
+
+    serve(runtime, host=args.host, port=args.port)
     return 0
 
 

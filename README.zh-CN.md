@@ -85,6 +85,8 @@ Skill Library（结构化任务流程，类似"驾驶手册"）和 Experience Ba
 - provenance 记录
 - verification hooks 与晋升门禁
 - SDK 版本兼容性检查
+- **HTTP sidecar 模式**（`skill-se-kit serve`）用于跨语言集成，消除 subprocess 启动开销
+- **官方 npm adapter**（`@skill-se-kit/adapter`）用于 TypeScript/JavaScript 宿主
 
 ## 支持的协议
 
@@ -115,6 +117,9 @@ skill-se-kit/
     reporting/
     verification/
   schemas/             # feedback 输入和 run 输出的 JSON Schema
+  packages/
+    js-adapter/        # @skill-se-kit/adapter npm 包
+  build/               # PyInstaller 配置，用于打包独立二进制
   tests/
   examples/
   docs/
@@ -160,6 +165,42 @@ skill-se-kit run --skill-root /path/to/skill \
   --input-json '{"task":"browse","url":"https://example.com"}' \
   --feedback-json '{"status":"positive","lesson":"用 page.evaluate() 穿透 shadow DOM","source":"explicit","confidence":0.9}'
 ```
+
+## HTTP Sidecar 模式
+
+跨语言集成（TypeScript、Go 等）时，可以启动常驻 HTTP server 代替每次 spawn CLI：
+
+```bash
+skill-se-kit serve --skill-root /path/to/skill --port 9780
+```
+
+然后用任何语言调用：
+
+```bash
+# 执行 + 学习
+curl -X POST http://localhost:9780/run \
+  -H 'Content-Type: application/json' \
+  -d '{"input":{"task":"browse"},"feedback":{"status":"positive","lesson":"...","source":"explicit"}}'
+
+# 读取 skill bank
+curl http://localhost:9780/skills
+```
+
+TypeScript/JavaScript 宿主可以直接用官方 adapter：
+
+```bash
+npm install @skill-se-kit/adapter
+```
+
+```typescript
+import { SkillSEKit } from '@skill-se-kit/adapter';
+
+const kit = new SkillSEKit({ port: 9780 });
+const result = await kit.run({ task: 'browse' }, { status: 'positive', lesson: '...', source: 'explicit' });
+const skills = await kit.getSkills();
+```
+
+完整 API 文档见 [packages/js-adapter/README.md](packages/js-adapter/README.md)。
 
 ## 傻瓜式使用
 
