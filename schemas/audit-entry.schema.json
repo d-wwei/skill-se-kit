@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d-wwei/skill-se-kit/schemas/audit-entry.schema.json",
+  "title": "AuditEntry",
+  "description": "Immutable record of a decision or event in the skill evolution lifecycle.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["audit_id", "created_at", "event_type", "skill_id", "details"],
+  "properties": {
+    "audit_id": {
+      "type": "string",
+      "pattern": "^aud-[a-f0-9]{12}$",
+      "description": "Unique identifier. Format: aud-{12 hex chars from uuid4}."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp. Must end with Z."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "skill_added",
+        "skill_merged",
+        "skill_superseded",
+        "skill_discarded",
+        "skill_synthesized",
+        "experience_recorded",
+        "snapshot_created",
+        "rollback_executed",
+        "proposal_created",
+        "proposal_submitted",
+        "proposal_accepted",
+        "proposal_rejected",
+        "governance_decision",
+        "provenance_source",
+        "provenance_lineage"
+      ],
+      "description": "Category of event."
+    },
+    "skill_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "description": "The skill this event belongs to."
+    },
+    "subject_id": {
+      "type": "string",
+      "description": "ID of the primary subject (skill_entry_id, experience_id, proposal_id, snapshot_id, etc.)."
+    },
+    "actor": {
+      "type": "string",
+      "description": "Who performed this action (e.g., 'agent', 'governor', agent model name)."
+    },
+    "details": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Event-specific details. Contents vary by event_type."
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "References to supporting evidence (file paths, URLs, etc.)."
+    }
+  }
+}

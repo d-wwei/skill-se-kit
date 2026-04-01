@@ -1,0 +1,39 @@
+{
+  "schema_name": "SkillManifest",
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "skill_id": "investment-advisor.skill",
+  "name": "Investment Advisor Skill",
+  "version": "1.2.0",
+  "description": "A governed skill for investment analysis and portfolio recommendations.",
+  "governance": {
+    "mode": "governed",
+    "official_status": "official",
+    "governor_id": "agent-skill-governor",
+    "handshake_required": true
+  },
+  "capability": {
+    "level": "native",
+    "summary": "Financial analysis with risk-aware portfolio recommendations"
+  },
+  "compatibility": {
+    "min_protocol_version": "1.0.0",
+    "max_protocol_version": "1.0.0"
+  },
+  "official_ref": {
+    "baseline_version": "1.2.0",
+    "promotion_decision_id": "dec-a1b2c3d4e5f6"
+  },
+  "metadata": {
+    "owner": "finance-team",
+    "contract": {
+      "min_feedback_confidence": 0.5,
+      "synthesis_threshold": 10,
+      "auto_promote": false,
+      "managed_files": [
+        {"path": "SKILL.md", "kind": "markdown"},
+        {"path": "analysis_engine.py", "kind": "code"}
+      ]
+    }
+  }
+}

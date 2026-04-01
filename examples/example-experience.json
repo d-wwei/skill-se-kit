@@ -1,0 +1,17 @@
+{
+  "experience_id": "exp-f1e2d3c4b5a6",
+  "skill_id": "web-scraper.skill",
+  "recorded_at": "2026-03-28T09:10:00Z",
+  "task_signature": "web_scraping_dynamic",
+  "lesson": "When scraping pages with shadow DOM components, page.querySelector() fails silently. Use page.evaluate() with manual shadow root traversal to access nested elements.",
+  "feedback_status": "negative",
+  "feedback_source": "execution_result",
+  "feedback_confidence": 0.85,
+  "reasoning": "Direct querySelector returned null for 3 consecutive attempts on shadow DOM elements. Switching to page.evaluate() with shadowRoot access succeeded immediately.",
+  "execution_id": "exec-a1b2c3d4e5f6",
+  "cross_rollout_critique": "Previous rollout used page.$() which also fails on shadow DOM. The evaluate() approach is strictly superior for this case.",
+  "metadata": {
+    "url_pattern": "*.example.com/dashboard/*",
+    "browser": "chromium"
+  }
+}

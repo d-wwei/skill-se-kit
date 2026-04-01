@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d-wwei/skill-se-kit/schemas/skill-contract.schema.json",
+  "title": "SkillContract",
+  "description": "Configuration contract for skill evolution behavior. Stored in manifest.json under metadata.contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "min_feedback_confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": 0.35,
+      "description": "Minimum confidence threshold for skill bank mutation. Feedback below this threshold is recorded as experience but does NOT modify the skill bank."
+    },
+    "synthesis_threshold": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 15,
+      "description": "When a skill entry has more than this many bullet points, trigger synthesis (compress and deduplicate)."
+    },
+    "managed_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Relative path to the managed file from skill root."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["markdown", "code", "config", "other"],
+            "description": "Type of managed file."
+          }
+        }
+      },
+      "description": "Files managed by the skill that the evolution process may modify."
+    },
+    "auto_promote": {
+      "type": "boolean",
+      "default": true,
+      "description": "In standalone mode, whether to automatically promote skill bank changes without explicit confirmation."
+    }
+  }
+}

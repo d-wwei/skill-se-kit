@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d-wwei/skill-se-kit/schemas/skill-bank.schema.json",
+  "title": "SkillBank",
+  "description": "The skill bank stores accumulated reusable knowledge as versioned skill entries.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["skills"],
+  "properties": {
+    "skills": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/skill_entry"
+      }
+    }
+  },
+  "$defs": {
+    "skill_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skill_entry_id", "title", "content", "version", "updated_at"],
+      "properties": {
+        "skill_entry_id": {
+          "type": "string",
+          "pattern": "^skl-[a-f0-9]{12}$",
+          "description": "Unique identifier. Format: skl-{12 hex chars from uuid4}."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable one-line summary of the skill."
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Skill content as markdown bullet points. Each bullet is a reusable guideline."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semantic version. Patch increments on each update (0.1.0 -> 0.1.1)."
+        },
+        "task_signature": {
+          "type": "string",
+          "description": "Normalized task type identifier for retrieval matching."
+        },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Search keywords for supplementary matching."
+        },
+        "source_experience_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "IDs of experience records that contributed to this skill."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 UTC timestamp of last update. Must end with Z."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d-wwei/skill-se-kit/schemas/experience-item.schema.json",
+  "title": "ExperienceItem",
+  "description": "A single learning experience recorded from task execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["experience_id", "skill_id", "recorded_at", "lesson", "feedback_status", "feedback_source", "feedback_confidence"],
+  "properties": {
+    "experience_id": {
+      "type": "string",
+      "pattern": "^exp-[a-f0-9]{12}$",
+      "description": "Unique identifier. Format: exp-{12 hex chars from uuid4}."
+    },
+    "skill_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "description": "The skill this experience belongs to."
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp. Must end with Z."
+    },
+    "task_signature": {
+      "type": "string",
+      "description": "Normalized task type that produced this experience."
+    },
+    "lesson": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The reusable insight extracted from this execution."
+    },
+    "feedback_status": {
+      "type": "string",
+      "enum": ["positive", "negative"],
+      "description": "Whether the execution was successful."
+    },
+    "feedback_source": {
+      "type": "string",
+      "enum": ["explicit", "user_input", "execution_result", "default"],
+      "description": "How the feedback was obtained."
+    },
+    "feedback_confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Confidence in the lesson's validity."
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "Optional detailed reasoning behind the feedback extraction."
+    },
+    "execution_id": {
+      "type": "string",
+      "description": "Reference to the execution that produced this experience."
+    },
+    "cross_rollout_critique": {
+      "type": "string",
+      "description": "Optional cross-rollout comparison critique (inspired by XSKILL)."
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Optional additional metadata."
+    }
+  }
+}

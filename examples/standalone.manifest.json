@@ -1,0 +1,33 @@
+{
+  "schema_name": "SkillManifest",
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "skill_id": "web-scraper.skill",
+  "name": "Web Scraper Skill",
+  "version": "0.3.2",
+  "description": "A skill for extracting structured data from web pages using browser automation.",
+  "governance": {
+    "mode": "standalone",
+    "official_status": "local"
+  },
+  "capability": {
+    "level": "native",
+    "summary": "Browser-based web scraping with dynamic content handling"
+  },
+  "compatibility": {
+    "min_protocol_version": "1.0.0",
+    "max_protocol_version": "1.0.0"
+  },
+  "metadata": {
+    "owner": "dev-team",
+    "contract": {
+      "min_feedback_confidence": 0.35,
+      "synthesis_threshold": 15,
+      "auto_promote": true,
+      "managed_files": [
+        {"path": "SKILL.md", "kind": "markdown"},
+        {"path": "scraper.py", "kind": "code"}
+      ]
+    }
+  }
+}

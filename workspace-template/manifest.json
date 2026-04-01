@@ -1,0 +1,32 @@
+{
+  "schema_name": "SkillManifest",
+  "schema_version": "1.0.0",
+  "protocol_version": "1.0.0",
+  "skill_id": "REPLACE_WITH_YOUR_SKILL_ID",
+  "name": "REPLACE_WITH_SKILL_NAME",
+  "version": "0.1.0",
+  "description": "REPLACE_WITH_DESCRIPTION",
+  "governance": {
+    "mode": "standalone",
+    "official_status": "local"
+  },
+  "capability": {
+    "level": "native",
+    "summary": "Self-evolving skill with Agent-Native SE Kit"
+  },
+  "compatibility": {
+    "min_protocol_version": "1.0.0",
+    "max_protocol_version": "1.0.0"
+  },
+  "metadata": {
+    "owner": "REPLACE_WITH_OWNER",
+    "contract": {
+      "min_feedback_confidence": 0.35,
+      "synthesis_threshold": 15,
+      "auto_promote": true,
+      "managed_files": [
+        {"path": "SKILL.md", "kind": "markdown"}
+      ]
+    }
+  }
+}

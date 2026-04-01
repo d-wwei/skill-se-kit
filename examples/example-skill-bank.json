@@ -1,0 +1,34 @@
+{
+  "skills": [
+    {
+      "skill_entry_id": "skl-a1b2c3d4e5f6",
+      "title": "Handle dynamic content loading in web scraping",
+      "content": "- Wait for network idle before extracting content, not just DOM ready\n- Use page.waitForSelector() with a timeout of 10s for lazy-loaded elements\n- Check for infinite scroll patterns: monitor DOM mutation count over 2s window\n- Prefer page.evaluate() over page.$() for complex DOM traversals in shadow DOMs",
+      "version": "0.2.1",
+      "task_signature": "web_scraping_dynamic",
+      "keywords": ["scraping", "dynamic", "lazy-load", "shadow-dom", "waitForSelector"],
+      "source_experience_ids": ["exp-f1e2d3c4b5a6", "exp-112233445566", "exp-aabbccddeeff"],
+      "updated_at": "2026-03-28T09:15:00Z"
+    },
+    {
+      "skill_entry_id": "skl-b2c3d4e5f6a7",
+      "title": "Rate limiting and retry strategies for API calls",
+      "content": "- Implement exponential backoff starting at 1s, max 30s, with jitter\n- Respect Retry-After headers when present; fall back to exponential backoff otherwise\n- Log rate limit events for later analysis of API usage patterns\n- Use HTTP 429 status code as the canonical rate limit signal",
+      "version": "0.1.2",
+      "task_signature": "api_rate_limiting",
+      "keywords": ["rate-limit", "retry", "backoff", "429", "api"],
+      "source_experience_ids": ["exp-223344556677"],
+      "updated_at": "2026-03-25T14:22:00Z"
+    },
+    {
+      "skill_entry_id": "skl-c3d4e5f6a7b8",
+      "title": "Structured data extraction from HTML tables",
+      "content": "- Identify table headers first; use them as keys for row dictionaries\n- Handle colspan/rowspan by expanding merged cells before extraction\n- Strip whitespace and normalize unicode in cell text (NFKC normalization)\n- Detect pagination in tables: look for 'next', 'page', or numbered links near the table",
+      "version": "0.1.0",
+      "task_signature": "html_table_extraction",
+      "keywords": ["table", "html", "extraction", "colspan", "pagination"],
+      "source_experience_ids": ["exp-334455667788"],
+      "updated_at": "2026-03-20T11:00:00Z"
+    }
+  ]
+}

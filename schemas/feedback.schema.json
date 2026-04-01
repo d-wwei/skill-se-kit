@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/d-wwei/skill-se-kit/schemas/feedback.schema.json",
+  "title": "Feedback",
+  "description": "Structured feedback from task execution, used to drive skill evolution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "lesson", "source"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["positive", "negative"],
+      "description": "Whether the execution outcome was successful or not."
+    },
+    "lesson": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A reusable insight extracted from this execution. Must be specific enough to guide future behavior."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["explicit", "user_input", "execution_result", "default"],
+      "description": "How the feedback was obtained: explicit user statement, inferred from user input, inferred from execution result, or default."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": 1.0,
+      "description": "Confidence in the lesson's validity. Below min_feedback_confidence (default 0.35), the skill bank is NOT mutated."
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "Optional detailed reasoning behind the lesson extraction."
+    }
+  }
+}
